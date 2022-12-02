@@ -1,5 +1,5 @@
 import {
-    getResultScore, OpponentShape, scoreForShape, Shape, shapeBeats, shapeLossesTo,
+    getResultScore, OpponentShape, scoreForShape, Shape, shapeBeats, shapeLosesTo,
     validateTheirInput
 } from './common.ts';
 
@@ -24,7 +24,7 @@ function getRequiredPlay(result: GameResult, theirPlay: Shape) {
     } else if (result === GameResult.Loss) {
         return shapeBeats(theirPlay);
     } else {
-        return shapeLossesTo(theirPlay);
+        return shapeLosesTo(theirPlay);
     }
 }
 

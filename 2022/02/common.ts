@@ -28,7 +28,7 @@ export function shapeBeats(shape: Shape) {
     }
 }
 
-export function shapeLossesTo(shape: Shape) {
+export function shapeLosesTo(shape: Shape) {
     switch (shape) {
         case Shape.Rock: return Shape.Paper;
         case Shape.Paper: return Shape.Scissors;
