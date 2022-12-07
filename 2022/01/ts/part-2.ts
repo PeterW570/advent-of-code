@@ -7,13 +7,13 @@ const lines = input.split("\n");
 const totals = [];
 let current = 0;
 for (const line of lines) {
-    if (line.trim() === "") {
-        totals.push(current);
-        current = 0;
-    } else {
-        current += Number(line);
-    }
-    
+	if (line.trim() === "") {
+		totals.push(current);
+		current = 0;
+	} else {
+		current += Number(line);
+	}
+
 }
 totals.push(current);
 totals.sort((a, b) => a > b ? -1 : 1);
