@@ -28,28 +28,33 @@ function getCommandType(input: string) {
 	}
 }
 
-const getDirToMoveInto = (input: string) => input.match(/^\$ cd (\w+)$/)[1];
+const getDirToMoveInto = (input: string) => input.match(/^\$ cd (?<dir>\w+)$/)?.groups?.dir;
 
 const getListItemType = (input: string) => input.startsWith("dir ") ? ListItemType.Dir : ListItemType.File;
 
 const getDirName = (input: string) => input.slice("dir ".length);
 function getFileInfo(input: string) {
-	const [size, name] = input.split(" ");
-	return {
-		size: Number(size),
-		name,
-	};
+	const match = input.match(/^(?<size>\d+) (?<name>[\w\.]+?)$/);
+	if (!match?.groups) throw new Error("Groups not parsed");
+	const { name, size } = match.groups;
+	return { name, size: Number(size) };
 }
 
 interface DirEntry {
 	[name: string]: number | DirEntry;
 }
-const fileTree: DirEntry = {};
-let currentDir: DirEntry = fileTree;
+type DirType = Partial<DirEntry>;
+const fileTree: DirType = {};
+let currentDir: DirType = fileTree;
 let currentPath = "";
 
 const getDirAtPath = (path: string) => path === "" ? fileTree
-	: path.split("/").reduce((dir, name) => dir[name], fileTree);
+	: path.split("/").reduce((dir, name) => {
+		const entry = dir[name];
+		if (entry === undefined) throw new Error("Expected dir not found");
+		else if (typeof entry === "number") throw new Error("File found rather than dir");
+		return entry;
+	}, fileTree);
 
 for (const line of lines.slice(1)) {
 	if (isCommand(line)) {
@@ -62,17 +67,20 @@ for (const line of lines.slice(1)) {
 			if (currentDir === undefined) throw new Error("Couldn't find dir");
 		} else if (commandType === CommandType.MoveIn) {
 			const dirName = getDirToMoveInto(line);
+			if (dirName === undefined) throw new Error("Couldn't find dir name to move into");
 			currentPath += currentPath == "" ? dirName : `/${dirName}`;
 			const newDir = currentDir[dirName];
 			if (typeof newDir === "number") throw new Error("Trying to move into file");
+			if (newDir === undefined) throw new Error("Couldn't find dir");
 			currentDir = newDir;
 		}
 	} else { // if not a command, must be listing files/dirs
 		const itemType = getListItemType(line);
 		if (itemType === ListItemType.Dir) {
 			const dirName = getDirName(line);
-			// assume it doesn't already exist
-			currentDir[dirName] = {};
+			if (!(dirName in currentDir)) {
+				currentDir[dirName] = {};
+			}
 		} else {
 			const { name, size } = getFileInfo(line);
 			currentDir[name] = size;
@@ -80,16 +88,16 @@ for (const line of lines.slice(1)) {
 	}
 }
 
-const dirSizes = [];
+const dirSizes: number[] = [];
 
-function calculateDirSize(tree: DirEntry) {
+function calculateDirSize(tree: DirType) {
 	let dirSize = 0;
 	for (const fileOrDirName in tree) {
 		const item = tree[fileOrDirName];
 		if (typeof item === "number") {
 			dirSize += item;
 		} else {
-			dirSize += calculateDirSize(item);
+			dirSize += calculateDirSize(item!);
 		}
 	}
 	dirSizes.push(dirSize);
