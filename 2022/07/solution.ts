@@ -46,10 +46,10 @@ interface DirEntry {
 type DirType = Partial<DirEntry>;
 const fileTree: DirType = {};
 let currentDir: DirType = fileTree;
-let currentPath = "";
+const currentPath: string[] = [];
 
-const getDirAtPath = (path: string) => path === "" ? fileTree
-	: path.split("/").reduce((dir, name) => {
+const getDirAtPath = (path: string[]) => path.length === 0 ? fileTree
+	: path.reduce((dir, name) => {
 		const entry = dir[name];
 		if (entry === undefined) throw new Error("Expected dir not found");
 		else if (typeof entry === "number") throw new Error("File found rather than dir");
@@ -60,7 +60,7 @@ for (const line of lines.slice(1)) {
 	if (isCommand(line)) {
 		const commandType = getCommandType(line);
 		if (commandType === CommandType.MoveUp) {
-			currentPath = currentPath.split("/").slice(0, -1).join("/");
+			currentPath.pop();
 			const newDir = getDirAtPath(currentPath);
 			if (typeof newDir === "number") throw new Error("Trying to move into file");
 			currentDir = newDir;
@@ -68,7 +68,7 @@ for (const line of lines.slice(1)) {
 		} else if (commandType === CommandType.MoveIn) {
 			const dirName = getDirToMoveInto(line);
 			if (dirName === undefined) throw new Error("Couldn't find dir name to move into");
-			currentPath += currentPath == "" ? dirName : `/${dirName}`;
+			currentPath.push(dirName);
 			const newDir = currentDir[dirName];
 			if (typeof newDir === "number") throw new Error("Trying to move into file");
 			if (newDir === undefined) throw new Error("Couldn't find dir");
