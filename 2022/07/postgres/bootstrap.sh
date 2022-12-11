@@ -18,7 +18,6 @@ while read -r line || [[ -n "$line" ]]; do
 		continue; # do nothing
 	elif [[ "$line" == "$ cd .." ]]; then # move up
 		unset 'current_path[${#current_path[@]}-1]'
-		continue;
 	elif [[ "$line" =~ ^\$\ cd\  ]]; then # move in
 		dirname=$(echo $line | cut -d ' ' -f 3)
 		current_path+=($dirname)
