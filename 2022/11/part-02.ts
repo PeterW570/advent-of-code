@@ -75,11 +75,10 @@ for (let roundNum = 0; roundNum < ROUND_COUNT; roundNum++) {
 		if (!items) throw new Error("Unable to find monkey items");
 
 		for (const item of items) {
-			const inspectedValue = info.operation(item);
-			const boredValue = inspectedValue % testDivisorProduct;
-			const testRes = info.test(boredValue);
+			const inspectedValue = info.operation(item) % testDivisorProduct;
+			const testRes = info.test(inspectedValue);
 			const nextMonkey = info.throwToMonkey(testRes);
-			currentItems.get(nextMonkey)?.push(boredValue);
+			currentItems.get(nextMonkey)?.push(inspectedValue);
 			inspectionsPerMonkey.set(monkeyNum, (inspectionsPerMonkey.get(monkeyNum) || 0) + 1);
 		}
 

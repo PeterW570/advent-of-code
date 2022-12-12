@@ -23,7 +23,7 @@ SELECT
 FROM descendents
 WHERE file_size IS NOT NULL;
 
-WITH contants AS (
+WITH constants AS (
     SELECT 30000000 - 70000000 + SUM(file_size) AS to_free_up FROM day_07_files
 )
 SELECT dir_size AS part_2_solution FROM (
@@ -33,6 +33,6 @@ SELECT dir_size AS part_2_solution FROM (
 	FROM get_all_files_in_all_dirs as all_files
 	GROUP BY all_files.root_id
 ) dir_sizes
-WHERE dir_size >= (SELECT to_free_up FROM contants)
+WHERE dir_size >= (SELECT to_free_up FROM constants)
 ORDER BY dir_size ASC
 LIMIT 1;
