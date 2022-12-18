@@ -62,7 +62,7 @@ const cubeWithinCheckingVolume = (coords: Coordinates) => {
 const queue: Coordinates[] = [{
 	x: minX - 1,
 	y: minY - 1,
-	z: minY - 1,
+	z: minZ - 1,
 }];
 
 while (true) {
