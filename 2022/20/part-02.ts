@@ -1,5 +1,7 @@
 import { dirname, fromFileUrl, join } from 'https://deno.land/std@0.167.0/path/posix.ts';
 
+import { move } from './common.ts';
+
 const _dirname = dirname(fromFileUrl(import.meta.url));
 const input = await Deno.readTextFile(join(_dirname, "./input.txt"));
 
@@ -15,8 +17,7 @@ for (let i = 0; i < MIXING_COUNT; i++) {
 	for (let j = 0; j < COUNT; j++) {
 		const matchIdx = toRearrange.findIndex(x => x.originalIndex === j);
 		if (matchIdx < 0) throw new Error("Couldn't find match");
-		const toMove = toRearrange.splice(matchIdx, 1)[0];
-		toRearrange.splice((matchIdx + toMove.moveBy) % toRearrange.length, 0, toMove);
+		move(toRearrange, matchIdx, toRearrange[matchIdx].moveBy);
 	}
 }
 
