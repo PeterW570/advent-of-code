@@ -144,42 +144,41 @@ function moveForward(face: number, coordinates: Coordinates, direction: FacingDi
 		assertIsDefined(nextFaceInfo);
 		nextFacing = nextFaceInfo.facing;
 
+		let distanceFromLeadingEdge: number | null;
+		switch (direction) {
+			case FacingDirection.Up:
+			case FacingDirection.Down:
+				distanceFromLeadingEdge = coordinates.x % EDGE_LENGTH;
+				break;
+			case FacingDirection.Left:
+			case FacingDirection.Right:
+				distanceFromLeadingEdge = coordinates.y % EDGE_LENGTH;
+				break;
+		}
+
+		let targetX: number | null;
+		let targetY: number | null;
+		switch (nextFaceInfo.facing) {
+			case FacingDirection.Down:
+				targetY = 0;
+				targetX = nextFaceInfo.flip ? EDGE_LENGTH - distanceFromLeadingEdge - 1 : distanceFromLeadingEdge;
+				break;
+			case FacingDirection.Up:
+				targetY = EDGE_LENGTH - 1;
+				targetX = nextFaceInfo.flip ? EDGE_LENGTH - distanceFromLeadingEdge - 1 : distanceFromLeadingEdge;
+				break;
+			case FacingDirection.Right:
+				targetX = 0;
+				targetY = nextFaceInfo.flip ? EDGE_LENGTH - distanceFromLeadingEdge - 1 : distanceFromLeadingEdge;
+				break;
+			case FacingDirection.Left:
+				targetX = EDGE_LENGTH - 1;
+				targetY = nextFaceInfo.flip ? EDGE_LENGTH - distanceFromLeadingEdge - 1 : distanceFromLeadingEdge;
+				break;
+		}
+
 		nextLocation = mapLocations.find(loc => {
 			if (loc.face !== nextFaceInfo.face) return false;
-
-			let distanceFromCorner: number | null;
-			switch (direction) {
-				case FacingDirection.Up:
-				case FacingDirection.Down:
-					distanceFromCorner = coordinates.x % EDGE_LENGTH;
-					break;
-				case FacingDirection.Left:
-				case FacingDirection.Right:
-					distanceFromCorner = coordinates.y % EDGE_LENGTH;
-					break;
-			}
-
-			let targetX: number | null;
-			let targetY: number | null;
-			switch (nextFaceInfo.facing) {
-				case FacingDirection.Down:
-					targetY = 0;
-					targetX = nextFaceInfo.flip ? EDGE_LENGTH - 1 - distanceFromCorner : distanceFromCorner;
-					break;
-				case FacingDirection.Up:
-					targetY = EDGE_LENGTH - 1;
-					targetX = nextFaceInfo.flip ? EDGE_LENGTH - 1 - distanceFromCorner : distanceFromCorner;
-					break;
-				case FacingDirection.Right:
-					targetX = 0;
-					targetY = nextFaceInfo.flip ? EDGE_LENGTH - 1 - distanceFromCorner : distanceFromCorner;
-					break;
-				case FacingDirection.Left:
-					targetX = EDGE_LENGTH - 1;
-					targetY = nextFaceInfo.flip ? EDGE_LENGTH - 1 - distanceFromCorner : distanceFromCorner;
-					break;
-			}
-
 			return loc.coordinatesOnFace.x === targetX && loc.coordinatesOnFace.y === targetY;
 		});
 	}
