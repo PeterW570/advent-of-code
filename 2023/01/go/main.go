@@ -8,6 +8,18 @@ import (
 	"strings"
 )
 
+var wordToNum = map[string]int{
+	"one":   1,
+	"two":   2,
+	"three": 3,
+	"four":  4,
+	"five":  5,
+	"six":   6,
+	"seven": 7,
+	"eight": 8,
+	"nine":  9,
+}
+
 func main() {
 	readFile, err := os.Open("../input.txt")
 
@@ -23,8 +35,8 @@ func main() {
 	var partTwoTotal = 0
 
 	for fileScanner.Scan() {
-		var first int
-		var last int
+		var first = -1
+		var last = -1
 
 		var line = fileScanner.Text()
 		var toParse = line
@@ -33,82 +45,30 @@ func main() {
 				break
 			}
 
+			var parsed = -1
+
 			maybeParsed, err := strconv.Atoi(string(toParse[0]))
 			if err == nil {
-				first = maybeParsed
-				break
-			} else if strings.HasPrefix(toParse, "one") {
-				first = 1
-				break
-			} else if strings.HasPrefix(toParse, "two") {
-				first = 2
-				break
-			} else if strings.HasPrefix(toParse, "three") {
-				first = 3
-				break
-			} else if strings.HasPrefix(toParse, "four") {
-				first = 4
-				break
-			} else if strings.HasPrefix(toParse, "five") {
-				first = 5
-				break
-			} else if strings.HasPrefix(toParse, "six") {
-				first = 6
-				break
-			} else if strings.HasPrefix(toParse, "seven") {
-				first = 7
-				break
-			} else if strings.HasPrefix(toParse, "eight") {
-				first = 8
-				break
-			} else if strings.HasPrefix(toParse, "nine") {
-				first = 9
-				break
+				parsed = maybeParsed
 			} else {
-				toParse = toParse[1:]
-			}
-		}
-
-		toParse = line
-		for {
-			if len(toParse) == 0 {
-				break
+				for word, num := range wordToNum {
+					if strings.HasPrefix(toParse, word) {
+						parsed = num
+						break
+					}
+				}
 			}
 
-			maybeParsed, err := strconv.Atoi(string(toParse[len(toParse)-1]))
-			if err == nil {
-				last = maybeParsed
-				break
-			} else if strings.HasSuffix(toParse, "one") {
-				last = 1
-				break
-			} else if strings.HasSuffix(toParse, "two") {
-				last = 2
-				break
-			} else if strings.HasSuffix(toParse, "three") {
-				last = 3
-				break
-			} else if strings.HasSuffix(toParse, "four") {
-				last = 4
-				break
-			} else if strings.HasSuffix(toParse, "five") {
-				last = 5
-				break
-			} else if strings.HasSuffix(toParse, "six") {
-				last = 6
-				break
-			} else if strings.HasSuffix(toParse, "seven") {
-				last = 7
-				break
-			} else if strings.HasSuffix(toParse, "eight") {
-				last = 8
-				break
-			} else if strings.HasSuffix(toParse, "nine") {
-				last = 9
-				break
-			} else {
-				toParse = toParse[:len(toParse)-1]
+			if parsed != -1 {
+				if first == -1 {
+					first = parsed
+					last = parsed
+				} else {
+					last = parsed
+				}
 			}
+
+			toParse = toParse[1:]
 		}
 
 		partTwoTotal += (first * 10) + last
