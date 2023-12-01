@@ -4,11 +4,19 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
-var wordToNum = map[string]int{
+var strToNum = map[string]int{
+	"1":     1,
+	"2":     2,
+	"3":     3,
+	"4":     4,
+	"5":     5,
+	"6":     6,
+	"7":     7,
+	"8":     8,
+	"9":     9,
 	"one":   1,
 	"two":   2,
 	"three": 3,
@@ -35,44 +43,42 @@ func main() {
 	var partTwoTotal = 0
 
 	for fileScanner.Scan() {
-		var first = -1
-		var last = -1
-
 		var line = fileScanner.Text()
-		var toParse = line
-		for {
-			if len(toParse) == 0 {
-				break
-			}
-
-			var parsed = -1
-
-			maybeParsed, err := strconv.Atoi(string(toParse[0]))
-			if err == nil {
-				parsed = maybeParsed
-			} else {
-				for word, num := range wordToNum {
-					if strings.HasPrefix(toParse, word) {
-						parsed = num
-						break
-					}
-				}
-			}
-
-			if parsed != -1 {
-				if first == -1 {
-					first = parsed
-					last = parsed
-				} else {
-					last = parsed
-				}
-			}
-
-			toParse = toParse[1:]
-		}
-
-		partTwoTotal += (first * 10) + last
+		partTwoTotal += sumFromLine(line)
 	}
 
 	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func sumFromLine(line string) int {
+	first := -1
+	last := -1
+
+	toParse := line
+	for {
+		if len(toParse) == 0 {
+			break
+		}
+
+		parsed := -1
+		for word, num := range strToNum {
+			if strings.HasPrefix(toParse, word) {
+				parsed = num
+				break
+			}
+		}
+
+		if parsed != -1 {
+			if first == -1 {
+				first = parsed
+				last = parsed
+			} else {
+				last = parsed
+			}
+		}
+
+		toParse = toParse[1:]
+	}
+
+	return (first * 10) + last
 }
