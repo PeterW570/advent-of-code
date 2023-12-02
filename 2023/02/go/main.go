@@ -22,6 +22,7 @@ func main() {
 	fileScanner.Split(bufio.ScanLines)
 
 	partOneTotal := 0
+	partTwoTotal := 0
 
 	for fileScanner.Scan() {
 		var line = fileScanner.Text()
@@ -29,9 +30,11 @@ func main() {
 		if parsed.maxCounts["red"] <= 12 && parsed.maxCounts["green"] <= 13 && parsed.maxCounts["blue"] <= 14 {
 			partOneTotal += parsed.gameNumber
 		}
+		partTwoTotal += (parsed.maxCounts["red"] * parsed.maxCounts["green"] * parsed.maxCounts["blue"])
 	}
 
 	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 type ParsedLine struct {
