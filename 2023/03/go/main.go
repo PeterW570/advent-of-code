@@ -7,19 +7,19 @@ import (
 	"strconv"
 )
 
-type coords struct {
-	row int
-	col int
+type Coords struct {
+	Row int
+	Col int
 }
 
-type part struct {
-	partNumber int
-	coords     []coords
+type Part struct {
+	PartNumber int
+	Coords     []Coords
 }
 
-type symbol struct {
-	symbol string
-	coords coords
+type Symbol struct {
+	Symbol string
+	Coords Coords
 }
 
 func main() {
@@ -31,50 +31,106 @@ func main() {
 	defer readFile.Close()
 
 	fileScanner := bufio.NewScanner(readFile)
-
 	fileScanner.Split(bufio.ScanLines)
 
-	partList := []part{}
-	symbolList := []symbol{}
-	currentPart := part{
-		partNumber: 0,
-		coords:     []coords{},
+	var lines []string
+	for fileScanner.Scan() {
+		lines = append(lines, fileScanner.Text())
+	}
+
+	partList, symbolList := parseLines(lines)
+
+	partOneTotal := solvePartOne(partList, symbolList)
+	partTwoTotal := solvePartTwo(partList, symbolList)
+
+	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func solvePartOne(partList []Part, symbolList []Symbol) int {
+	total := 0
+	for _, part := range partList {
+	partCoordLoop:
+		for _, coord := range part.Coords {
+			for _, symbol := range symbolList {
+				if symbol.Coords.Col >= coord.Col-1 && symbol.Coords.Col <= coord.Col+1 &&
+					symbol.Coords.Row >= coord.Row-1 && symbol.Coords.Row <= coord.Row+1 {
+					total += part.PartNumber
+					break partCoordLoop
+				}
+			}
+		}
+	}
+	return total
+}
+
+func solvePartTwo(partList []Part, symbolList []Symbol) int {
+	total := 0
+	for _, symbol := range symbolList {
+		if symbol.Symbol != "*" {
+			continue
+		}
+
+		matchingPartNums := []int{}
+		for _, part := range partList {
+		partCoordLoop:
+			for _, coord := range part.Coords {
+				if coord.Col >= symbol.Coords.Col-1 && coord.Col <= symbol.Coords.Col+1 &&
+					coord.Row >= symbol.Coords.Row-1 && coord.Row <= symbol.Coords.Row+1 {
+					matchingPartNums = append(matchingPartNums, part.PartNumber)
+					break partCoordLoop
+				}
+			}
+		}
+
+		if len(matchingPartNums) == 2 {
+			total += matchingPartNums[0] * matchingPartNums[1]
+		}
+	}
+	return total
+}
+
+func parseLines(lines []string) ([]Part, []Symbol) {
+	partList := []Part{}
+	symbolList := []Symbol{}
+	currentPart := Part{
+		PartNumber: 0,
+		Coords:     []Coords{},
 	}
 	flushCurrentPart := func() {
-		if len(currentPart.coords) > 0 {
+		if len(currentPart.Coords) > 0 {
 			partList = append(partList, currentPart)
-			currentPart = part{
-				partNumber: 0,
-				coords:     []coords{},
+			currentPart = Part{
+				PartNumber: 0,
+				Coords:     []Coords{},
 			}
 		}
 	}
 
 	currentLineIdx := 0
-	for fileScanner.Scan() {
+	for _, line := range lines {
 		flushCurrentPart()
 
-		var line = fileScanner.Text()
 		for i, char := range line {
 			letter := string(char)
 
 			num, err := strconv.Atoi(letter)
 			if err == nil {
-				currentPart.partNumber = currentPart.partNumber*10 + num
-				currentPart.coords = append(currentPart.coords, coords{
-					row: currentLineIdx,
-					col: i,
+				currentPart.PartNumber = currentPart.PartNumber*10 + num
+				currentPart.Coords = append(currentPart.Coords, Coords{
+					Row: currentLineIdx,
+					Col: i,
 				})
 			} else if letter == "." {
 				flushCurrentPart()
 				continue
 			} else {
 				flushCurrentPart()
-				symbolList = append(symbolList, symbol{
-					symbol: letter,
-					coords: coords{
-						row: currentLineIdx,
-						col: i,
+				symbolList = append(symbolList, Symbol{
+					Symbol: letter,
+					Coords: Coords{
+						Row: currentLineIdx,
+						Col: i,
 					},
 				})
 			}
@@ -84,43 +140,5 @@ func main() {
 	}
 	flushCurrentPart()
 
-	partOneTotal := 0
-	for _, part := range partList {
-	partCoordLoop:
-		for _, coord := range part.coords {
-			for _, symbol := range symbolList {
-				if symbol.coords.col >= coord.col-1 && symbol.coords.col <= coord.col+1 &&
-					symbol.coords.row >= coord.row-1 && symbol.coords.row <= coord.row+1 {
-					partOneTotal += part.partNumber
-					break partCoordLoop
-				}
-			}
-		}
-	}
-
-	partTwoTotal := 0
-	for _, symbol := range symbolList {
-		if symbol.symbol != "*" {
-			continue
-		}
-
-		matchingPartNums := []int{}
-		for _, part := range partList {
-		partCoordLoopPt2:
-			for _, coord := range part.coords {
-				if coord.col >= symbol.coords.col-1 && coord.col <= symbol.coords.col+1 &&
-					coord.row >= symbol.coords.row-1 && coord.row <= symbol.coords.row+1 {
-					matchingPartNums = append(matchingPartNums, part.partNumber)
-					break partCoordLoopPt2
-				}
-			}
-		}
-
-		if len(matchingPartNums) == 2 {
-			partTwoTotal += matchingPartNums[0] * matchingPartNums[1]
-		}
-	}
-
-	fmt.Printf("Part 1: %d\n", partOneTotal)
-	fmt.Printf("Part 2: %d\n", partTwoTotal)
+	return (partList), (symbolList)
 }
