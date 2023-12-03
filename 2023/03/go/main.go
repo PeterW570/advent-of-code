@@ -98,5 +98,29 @@ func main() {
 		}
 	}
 
+	partTwoTotal := 0
+	for _, symbol := range symbolList {
+		if symbol.symbol != "*" {
+			continue
+		}
+
+		matchingPartNums := []int{}
+		for _, part := range partList {
+		partCoordLoopPt2:
+			for _, coord := range part.coords {
+				if coord.col >= symbol.coords.col-1 && coord.col <= symbol.coords.col+1 &&
+					coord.row >= symbol.coords.row-1 && coord.row <= symbol.coords.row+1 {
+					matchingPartNums = append(matchingPartNums, part.partNumber)
+					break partCoordLoopPt2
+				}
+			}
+		}
+
+		if len(matchingPartNums) == 2 {
+			partTwoTotal += matchingPartNums[0] * matchingPartNums[1]
+		}
+	}
+
 	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
