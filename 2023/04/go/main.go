@@ -24,15 +24,23 @@ func main() {
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
 
-	partOneTotal := 0
+	partTwoTotal := 0
+	cardTotals := make(map[int]int)
 
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
 		card := parseLine(line)
-		partOneTotal += card.Points
+		cardTotals[card.CardNumber] += 1
+		copies := cardTotals[card.CardNumber]
+		for i := 0; i < copies; i++ {
+			for j := 1; j <= card.Points; j++ {
+				cardTotals[card.CardNumber+j] += 1
+			}
+		}
+		partTwoTotal += copies
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 func parseLine(line string) Card {
@@ -55,10 +63,8 @@ func parseLine(line string) Card {
 	for _, cardNumStr := range strings.Fields(splits[1]) {
 		if !winningNums[cardNumStr] {
 			continue
-		} else if points == 0 {
-			points = 1
 		} else {
-			points *= 2
+			points++
 		}
 	}
 	card.Points = points
