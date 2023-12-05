@@ -33,109 +33,93 @@ func main() {
 	lines := parseFileToLines("../input.txt")
 	almanac := ParseLines(lines)
 
-	var lowestLocation int
-	for i, seed := range almanac.Seeds {
-		locationForSeed := GetLocationForSeed(seed, almanac)
-		if i == 0 {
-			lowestLocation = locationForSeed
-		} else {
-			lowestLocation = min(lowestLocation, locationForSeed)
+	lowestLocation := 0
+	for {
+		mapped := lowestLocation
+		for i := len(almanac.Maps); i > 0; i-- {
+			currMap := almanac.Maps[i-1]
+			mapped = GetSourceVal(currMap, mapped)
 		}
+
+		found := false
+		for _, seed := range almanac.Seeds {
+			if mapped >= seed.Start && mapped < (seed.Start+seed.Range) {
+				found = true
+			}
+		}
+
+		if found {
+			break
+		}
+		lowestLocation++
 	}
 
-	fmt.Printf("Part 1: %d\n", lowestLocation)
+	fmt.Printf("Part 2: %d\n", lowestLocation)
 }
 
-func GetTargetVal(sourceToTargetMapEntries []MapLine, sourceVal int) int {
+func GetSourceVal(sourceToTargetMapEntries []MapLine, destVal int) int {
 	for _, entry := range sourceToTargetMapEntries {
-		if sourceVal >= entry.SourceRangeStart && sourceVal <= (entry.SourceRangeStart+entry.Range) {
-			return entry.DestRangeStart + (sourceVal - entry.SourceRangeStart)
+		if destVal >= entry.DestRangeStart && destVal < (entry.DestRangeStart+entry.Range) {
+			return entry.SourceRangeStart + (destVal - entry.DestRangeStart)
 		}
 	}
-	return sourceVal
-}
-
-func GetLocationForSeed(seed int, almanac Almanac) int {
-	soil := GetTargetVal(almanac.SeedToSoilMap, seed)
-	fertilizer := GetTargetVal(almanac.SoilToFertilizerMap, soil)
-	water := GetTargetVal(almanac.FertilizerToWaterMap, fertilizer)
-	light := GetTargetVal(almanac.WaterToLightMap, water)
-	temp := GetTargetVal(almanac.LightToTemperatureMap, light)
-	humidity := GetTargetVal(almanac.TemperatureToHumidityMap, temp)
-	location := GetTargetVal(almanac.HumidityToLocationMap, humidity)
-	// fmt.Printf("seed %d -> soil %d -> fert %d -> water %d -> light %d -> temp %d -> hum %d -> loc %d\n", seed, soil, fertilizer, water, light, temp, humidity, location)
-	return location
+	return destVal
 }
 
 type Almanac struct {
-	Seeds                    []int
-	SeedToSoilMap            []MapLine
-	SoilToFertilizerMap      []MapLine
-	FertilizerToWaterMap     []MapLine
-	WaterToLightMap          []MapLine
-	LightToTemperatureMap    []MapLine
-	TemperatureToHumidityMap []MapLine
-	HumidityToLocationMap    []MapLine
+	Seeds []SeedRange
+	Maps  [][]MapLine
 }
 
 func ParseLines(lines []string) Almanac {
 	almanac := Almanac{
-		Seeds:                    make([]int, 0),
-		SeedToSoilMap:            make([]MapLine, 0),
-		SoilToFertilizerMap:      make([]MapLine, 0),
-		FertilizerToWaterMap:     make([]MapLine, 0),
-		WaterToLightMap:          make([]MapLine, 0),
-		LightToTemperatureMap:    make([]MapLine, 0),
-		TemperatureToHumidityMap: make([]MapLine, 0),
-		HumidityToLocationMap:    make([]MapLine, 0),
+		Seeds: make([]SeedRange, 0),
+		Maps:  make([][]MapLine, 0),
 	}
 
 	almanac.Seeds = ParseSeedLine(lines[0])
 
-	parsingMap := ""
-	addToMapLines := func(entry MapLine) {
-		switch parsingMap {
-		case "seed-to-soil":
-			almanac.SeedToSoilMap = append(almanac.SeedToSoilMap, entry)
-		case "soil-to-fertilizer":
-			almanac.SoilToFertilizerMap = append(almanac.SoilToFertilizerMap, entry)
-		case "fertilizer-to-water":
-			almanac.FertilizerToWaterMap = append(almanac.FertilizerToWaterMap, entry)
-		case "water-to-light":
-			almanac.WaterToLightMap = append(almanac.WaterToLightMap, entry)
-		case "light-to-temperature":
-			almanac.LightToTemperatureMap = append(almanac.LightToTemperatureMap, entry)
-		case "temperature-to-humidity":
-			almanac.TemperatureToHumidityMap = append(almanac.TemperatureToHumidityMap, entry)
-		case "humidity-to-location":
-			almanac.HumidityToLocationMap = append(almanac.HumidityToLocationMap, entry)
-		default:
-			panic("Unexpected parsingMap")
-		}
+	currentMap := make([]MapLine, 0)
+	flush := func() {
+		almanac.Maps = append(almanac.Maps, currentMap)
+		currentMap = make([]MapLine, 0)
 	}
 
 	for _, line := range lines[2:] {
 		if strings.HasSuffix(line, " map:") {
-			parsingMap = strings.Fields(line)[0]
+			flush()
 		} else if len(strings.TrimSpace(line)) > 0 {
-			addToMapLines(ParseMapLine(line))
+			currentMap = append(currentMap, ParseMapLine(line))
 		}
 	}
+	flush()
 
 	return almanac
 }
 
-func ParseSeedLine(line string) []int {
+func ParseSeedLine(line string) []SeedRange {
 	splits := strings.Fields(line)[1:]
-	seeds := make([]int, 0)
-	for _, seed := range splits {
-		seedInt, err := strconv.Atoi(seed)
+	seeds := make([]SeedRange, 0)
+	sr := SeedRange{}
+	for i, seed := range splits {
+		num, err := strconv.Atoi(seed)
 		if err != nil {
 			panic(err)
 		}
-		seeds = append(seeds, seedInt)
+		if i%2 == 0 {
+			sr.Start = num
+		} else {
+			sr.Range = num
+			seeds = append(seeds, sr)
+			sr = SeedRange{}
+		}
 	}
 	return seeds
+}
+
+type SeedRange struct {
+	Start int
+	Range int
 }
 
 type MapLine struct {
