@@ -36,39 +36,23 @@ type Race struct {
 
 func main() {
 	lines := parseFileToLines("../input.txt")
-	timeStrs := strings.Fields(lines[0])[1:]
-	distStrs := strings.Fields(lines[1])[1:]
-
-	races := make([]Race, 0)
-	for i := 0; i < len(timeStrs); i++ {
-		time, err := strconv.Atoi(timeStrs[i])
-		if err != nil {
-			panic(err)
-		}
-		dist, err := strconv.Atoi(distStrs[i])
-		if err != nil {
-			panic(err)
-		}
-		races = append(races, Race{Time: time, Dist: dist})
+	time, err := strconv.Atoi(strings.Split(strings.ReplaceAll(lines[0], " ", ""), ":")[1])
+	if err != nil {
+		panic(err)
+	}
+	dist, err := strconv.Atoi(strings.Split(strings.ReplaceAll(lines[1], " ", ""), ":")[1])
+	if err != nil {
+		panic(err)
 	}
 
-	waysToWin := make([]int, 0)
-	for _, race := range races {
-		raceWins := 0
-		for secs := 0; secs < race.Time; secs++ {
-			speed := secs
-			raceDist := (race.Time - secs) * speed
-			if raceDist > race.Dist {
-				raceWins++
-			}
+	waysToWin := 0
+	for secs := 0; secs < time; secs++ {
+		speed := secs
+		raceDist := (time - secs) * speed
+		if raceDist > dist {
+			waysToWin++
 		}
-		waysToWin = append(waysToWin, raceWins)
 	}
 
-	partOneTotal := 1
-	for _, wins := range waysToWin {
-		partOneTotal *= wins
-	}
-
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", waysToWin)
 }
