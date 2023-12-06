@@ -58,6 +58,9 @@ func findWaysToWin(time, record int) int {
 		raceDist := (time - secs) * speed
 		if raceDist > record {
 			waysToWin++
+		} else if waysToWin > 0 {
+			// if we're no longer beating the record, we won't anymore so stop trying
+			break
 		}
 	}
 	return waysToWin
