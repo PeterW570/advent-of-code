@@ -36,23 +36,29 @@ type Race struct {
 
 func main() {
 	lines := parseFileToLines("../input.txt")
-	time, err := strconv.Atoi(strings.Split(strings.ReplaceAll(lines[0], " ", ""), ":")[1])
-	if err != nil {
-		panic(err)
-	}
-	dist, err := strconv.Atoi(strings.Split(strings.ReplaceAll(lines[1], " ", ""), ":")[1])
-	if err != nil {
-		panic(err)
-	}
+	time := parseNumFromLine(lines[0])
+	dist := parseNumFromLine(lines[1])
 
+	waysToWin := findWaysToWin(time, dist)
+	fmt.Printf("Part 2: %d\n", waysToWin)
+}
+
+func parseNumFromLine(line string) int {
+	num, err := strconv.Atoi(strings.Split(strings.ReplaceAll(line, " ", ""), ":")[1])
+	if err != nil {
+		panic(err)
+	}
+	return num
+}
+
+func findWaysToWin(time, record int) int {
 	waysToWin := 0
 	for secs := 0; secs < time; secs++ {
 		speed := secs
 		raceDist := (time - secs) * speed
-		if raceDist > dist {
+		if raceDist > record {
 			waysToWin++
 		}
 	}
-
-	fmt.Printf("Part 2: %d\n", waysToWin)
+	return waysToWin
 }
