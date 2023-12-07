@@ -10,6 +10,7 @@ import (
 )
 
 var cardToVal = map[string]int{
+	"J": 1, // joker
 	"2": 2,
 	"3": 3,
 	"4": 4,
@@ -19,7 +20,6 @@ var cardToVal = map[string]int{
 	"8": 8,
 	"9": 9,
 	"T": 10,
-	"J": 11,
 	"Q": 12,
 	"K": 13,
 	"A": 14,
@@ -72,13 +72,13 @@ func main() {
 		return compareHands(hands[i].cards, hands[j].cards)
 	})
 
-	partOneTotal := 0
+	partTwoTotal := 0
 	for i := 0; i < len(hands); i++ {
 		rank := len(hands) - i
-		partOneTotal += hands[i].bid * rank
+		partTwoTotal += hands[i].bid * rank
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 func compareHands(hand1, hand2 string) bool {
@@ -107,12 +107,24 @@ func classifyHand(hand string) handClassification {
 	}
 
 	var frequencies = make([]int, 0)
-	for _, val := range handMap {
-		frequencies = append(frequencies, val)
+	var jokers = handMap["J"]
+	for k, val := range handMap {
+		if k == "J" {
+			continue
+		} else {
+			frequencies = append(frequencies, val)
+		}
 	}
 	sort.Slice(frequencies, func(i, j int) bool {
 		return frequencies[i] > frequencies[j]
 	})
+
+	// happens if all cards are jokers
+	if len(frequencies) == 0 {
+		return fiveOfAKind
+	}
+
+	frequencies[0] += jokers
 
 	if frequencies[0] == 5 {
 		return fiveOfAKind

@@ -8,10 +8,10 @@ func TestClassifyHand(t *testing.T) {
 		expected handClassification
 	}{
 		{"32T3K", onePair},
-		{"T55J5", threeOfAKind},
+		{"T55J5", fourOfAKind},
 		{"KK677", twoPair},
-		{"KTJJT", twoPair},
-		{"QQQJA", threeOfAKind},
+		{"KTJJT", fourOfAKind},
+		{"QQQJA", fourOfAKind},
 	}
 
 	for _, test := range tests {
