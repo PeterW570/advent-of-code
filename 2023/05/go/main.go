@@ -9,7 +9,7 @@ import (
 )
 
 func parseFileToLines(fileName string) []string {
-	readFile, err := os.Open("../input.txt")
+	readFile, err := os.Open(fileName)
 
 	if err != nil {
 		fmt.Println(err)
