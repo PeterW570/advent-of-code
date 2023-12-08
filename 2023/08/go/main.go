@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"strings"
@@ -35,19 +36,57 @@ func main() {
 
 	instructions := strings.Split(lines[0], "")
 	nodesById := make(map[string]node, 0)
-	startNodeId := "AAA"
-	endNodeId := "ZZZ"
+	startNodeIds := make([]string, 0)
 
 	for _, line := range lines[1:] {
 		node := parseLineToNode(line)
 		nodesById[node.id] = node
+		if strings.HasSuffix(node.id, "A") {
+			startNodeIds = append(startNodeIds, node.id)
+		}
 	}
 
-	currentNode := nodesById[startNodeId]
+	stepsToSolve := make(map[int]bool, 0)
+	for _, id := range startNodeIds {
+		stepsToSolve[stepsForStartingNode(nodesById, id, instructions)] = true
+	}
+	dedupedSteps := make([]int, 0)
+	for step := range stepsToSolve {
+		dedupedSteps = append(dedupedSteps, step)
+	}
+	partTwoTotal := lcmOfSlice(dedupedSteps)
+
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+// Function to calculate the greatest common divisor (GCD) of two numbers
+func gcd(a, b int) int {
+	for b != 0 {
+		a, b = b, a%b
+	}
+	return a
+}
+
+// Function to calculate the lowest common multiple (LCM) of two numbers
+func lcm(a, b int) int {
+	return int(math.Abs(float64(a*b)) / float64(gcd(a, b)))
+}
+
+// Function to calculate the LCM of multiple numbers
+func lcmOfSlice(numbers []int) int {
+	result := 1
+	for _, num := range numbers {
+		result = lcm(result, num)
+	}
+	return result
+}
+
+func stepsForStartingNode(nodesById map[string]node, startId string, instructions []string) int {
+	currentNode := nodesById[startId]
 	currentInstructionIdx := 0
 	steps := 0
 	for {
-		if currentNode.id == endNodeId {
+		if strings.HasSuffix(currentNode.id, "Z") {
 			break
 		}
 		instruction := instructions[(currentInstructionIdx % len(instructions))]
@@ -64,7 +103,7 @@ func main() {
 		currentInstructionIdx++
 	}
 
-	fmt.Printf("Part 1: %d\n", steps)
+	return steps
 }
 
 func parseLineToNode(line string) node {
