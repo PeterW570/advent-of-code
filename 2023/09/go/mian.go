@@ -20,6 +20,7 @@ func main() {
 	fileScanner.Split(bufio.ScanLines)
 
 	partOneTotal := 0
+	partTwoTotal := 0
 
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
@@ -34,13 +35,15 @@ func main() {
 			nums = append(nums, num)
 		}
 
-		partOneTotal += nextNumber(nums)
+		partOneTotal += nextNumber(nums, 1)
+		partTwoTotal += nextNumber(nums, -1)
 	}
 
 	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
-func nextNumber(nums []int) int {
+func nextNumber(nums []int, dir int) int {
 	diffs := make([][]int, 0)
 	prev := nums
 	for {
@@ -65,11 +68,22 @@ func nextNumber(nums []int) int {
 	prevDiff := 0
 	for i := len(diffs) - 1; i >= 0; i-- {
 		currDiffs := diffs[i]
-		last := currDiffs[len(currDiffs)-1]
-		next := last + prevDiff
+		var next int
+		if dir == -1 {
+			first := currDiffs[0]
+			next = first - prevDiff
+		} else {
+			last := currDiffs[len(currDiffs)-1]
+			next = last + prevDiff
+		}
 		prevDiff = next
 	}
 
-	last := nums[len(nums)-1]
-	return last + prevDiff
+	if dir == -1 {
+		first := nums[0]
+		return first - prevDiff
+	} else {
+		last := nums[len(nums)-1]
+		return last + prevDiff
+	}
 }
