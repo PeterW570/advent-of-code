@@ -81,6 +81,40 @@ func main() {
 
 	partOneTotal := math.Ceil(float64(len(trail)) / 2)
 	fmt.Printf("Part 1: %d\n", int(partOneTotal))
+
+	partTwoTotal := 0
+	for _, row := range tileGrid {
+		// Use the non-zero winding rule (https://en.wikipedia.org/wiki/Nonzero-rule)
+		// https://www.reddit.com/r/adventofcode/comments/18eza5g/2023_day_10_animated_visualization/kcqwjon/
+
+		crossingCount := 0
+		for _, tile := range row {
+			trailIdx := -1
+			for i, trailTile := range trail {
+				if trailTile.coords.IsEqual(tile.coords) {
+					trailIdx = i
+					break
+				}
+			}
+			if trailIdx > -1 {
+				// if the tile is on the path and the cell below it is also on the path,
+				// then we can check to if the cell below came before or after
+				// if before -> increment, else -> decrement
+				belowCoords := tile.coords.Down()
+				before := trail[(trailIdx-1+len(trail))%len(trail)]
+				after := trail[(trailIdx+1)%len(trail)]
+				if belowCoords.IsEqual(before.coords) {
+					crossingCount++
+				} else if belowCoords.IsEqual(after.coords) {
+					crossingCount--
+				}
+			} else if crossingCount != 0 {
+				// when the crossing count is non-zero, we are on the interior of the loop
+				partTwoTotal++
+			}
+		}
+	}
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 func getStartingNextTile(start tile, tileGrid [][]tile) tile {
