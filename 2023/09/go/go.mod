@@ -1,3 +1,3 @@
-module peterweightman.com/aoc-2023-09
+module peterweightman.com/aoc/2023-09
 
 go 1.21.3

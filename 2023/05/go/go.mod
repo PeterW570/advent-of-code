@@ -1,4 +1,4 @@
-module peterweightman.com/aoc-2023-05
+module peterweightman.com/aoc/2023-05
 
 go 1.21.3
 
