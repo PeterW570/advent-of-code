@@ -15,11 +15,17 @@ const (
 
 func main() {
 	grid := make([][]cellType, 0)
+	galaxies := make([]utils.Coords, 0)
+
 	utils.IterateFileLines("../input.txt", func(line string) {
 		gridLine := make([]cellType, 0)
 
 		for _, char := range line {
 			if char == '#' {
+				galaxies = append(galaxies, utils.Coords{
+					Row: len(grid),
+					Col: len(gridLine),
+				})
 				gridLine = append(gridLine, galaxy)
 			} else {
 				gridLine = append(gridLine, empty)
@@ -29,32 +35,23 @@ func main() {
 		grid = append(grid, gridLine)
 	})
 
-	expandedGrid := expandSpace(grid)
-	galaxies := make([]utils.Coords, 0)
+	emptyRows, emptyCols := findEmptyRowsAndCols(grid)
 
-	for i, row := range expandedGrid {
-		for j, cell := range row {
-			if cell == galaxy {
-				galaxies = append(galaxies, utils.Coords{
-					Row: i,
-					Col: j,
-				})
-			}
-		}
-	}
-
-	partOneTotal := 0
+	partTwoTotal := 0
 	for i, startCoords := range galaxies {
 		for j, endCoords := range galaxies {
 			if j >= i {
 				break
 			}
 
-			partOneTotal += startCoords.ManhattenDistanceTo(endCoords)
+			adjustedStart := adjustedCoords(startCoords, emptyRows, emptyCols)
+			adjustedEnd := adjustedCoords(endCoords, emptyRows, emptyCols)
+
+			partTwoTotal += adjustedStart.ManhattenDistanceTo(adjustedEnd)
 		}
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 // func printGrid(grid [][]cellType) {
@@ -70,15 +67,12 @@ func main() {
 // 	}
 // }
 
-func expandSpace(grid [][]cellType) [][]cellType {
-	newGrid := make([][]cellType, 0)
+func findEmptyRowsAndCols(grid [][]cellType) ([]int, []int) {
+	emptyRows := make([]int, 0)
+	emptyCols := make([]int, 0)
 
 	// check for empty rows
-	for _, row := range grid {
-		copied := make([]cellType, len(row))
-		copy(copied, row)
-		newGrid = append(newGrid, copied)
-
+	for rowIdx, row := range grid {
 		isEmpty := true
 		for _, cell := range row {
 			if cell != empty {
@@ -88,12 +82,11 @@ func expandSpace(grid [][]cellType) [][]cellType {
 		}
 
 		if isEmpty {
-			newGrid = append(newGrid, make([]cellType, len(grid[0])))
+			emptyRows = append(emptyRows, rowIdx)
 		}
 	}
 
 	// check for empty cols
-	addedCols := 0
 	for col := 0; col < len(grid[0]); col++ {
 		isEmpty := true
 		for _, row := range grid {
@@ -104,12 +97,31 @@ func expandSpace(grid [][]cellType) [][]cellType {
 		}
 
 		if isEmpty {
-			for row := 0; row < len(newGrid); row++ {
-				newGrid[row] = append(newGrid[row][:(col+addedCols)], append([]cellType{empty}, newGrid[row][(col+addedCols):]...)...)
-			}
-			addedCols++
+			emptyCols = append(emptyCols, col)
 		}
 	}
 
-	return newGrid
+	return emptyRows, emptyCols
+}
+
+func adjustedCoords(coords utils.Coords, emptyRows, emptyCols []int) utils.Coords {
+	addedRows := 0
+	addedCols := 0
+
+	for _, row := range emptyRows {
+		if row < coords.Row {
+			addedRows += 999_999
+		}
+	}
+
+	for _, col := range emptyCols {
+		if col < coords.Col {
+			addedCols += 999_999
+		}
+	}
+
+	return utils.Coords{
+		Row: coords.Row + addedRows,
+		Col: coords.Col + addedCols,
+	}
 }
