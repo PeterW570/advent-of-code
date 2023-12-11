@@ -1,6 +1,9 @@
 package aoc_utils
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type Coords struct {
 	Row int
@@ -45,4 +48,8 @@ func (c Coords) Right() Coords {
 		Row: c.Row,
 		Col: c.Col + 1,
 	}
+}
+
+func (c Coords) ManhattenDistanceTo(target Coords) int {
+	return int(math.Abs(float64(c.Row-target.Row)) + math.Abs(float64(c.Col-target.Col)))
 }
