@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func TestFindReflectionCol(t *testing.T) {
+func TestFindSmudgedReflectionCol(t *testing.T) {
 	tests := []struct {
 		input    []string
 		expected int
@@ -15,7 +15,7 @@ func TestFindReflectionCol(t *testing.T) {
 			"..#.##.#.",
 			"..##..##.",
 			"#.#.##.#.",
-		}, 5},
+		}, -1},
 		{[]string{
 			"#...##..#",
 			"#....#..#",
@@ -28,14 +28,14 @@ func TestFindReflectionCol(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := findReflectionCol(test.input)
+		got := findSmudgedReflectionCol(test.input)
 		if got != test.expected {
 			t.Errorf("findReflectionCol(%v) = %d, want %d", test.input, got, test.expected)
 		}
 	}
 }
 
-func TestFindReflectionRow(t *testing.T) {
+func TestFindSmudgedReflectionRow(t *testing.T) {
 	tests := []struct {
 		input    []string
 		expected int
@@ -48,7 +48,7 @@ func TestFindReflectionRow(t *testing.T) {
 			"..#.##.#.",
 			"..##..##.",
 			"#.#.##.#.",
-		}, -1},
+		}, 3},
 		{[]string{
 			"#...##..#",
 			"#....#..#",
@@ -57,11 +57,11 @@ func TestFindReflectionRow(t *testing.T) {
 			"#####.##.",
 			"..##..###",
 			"#....#..#",
-		}, 4},
+		}, 1},
 	}
 
 	for _, test := range tests {
-		got := findReflectionRow(test.input)
+		got := findSmudgedReflectionRow(test.input)
 		if got != test.expected {
 			t.Errorf("findReflectionRow(%v) = %d, want %d", test.input, got, test.expected)
 		}

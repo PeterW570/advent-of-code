@@ -20,25 +20,25 @@ func main() {
 	})
 	puzzles = append(puzzles, curr)
 
-	partOneTotal := 0
+	partTwoTotal := 0
 
 	for _, puzzle := range puzzles {
-		reflectionCol := findReflectionCol(puzzle)
-		reflectionRow := findReflectionRow(puzzle)
+		reflectionCol := findSmudgedReflectionCol(puzzle)
+		reflectionRow := findSmudgedReflectionRow(puzzle)
 		if reflectionCol != -1 {
-			partOneTotal += reflectionCol
+			partTwoTotal += reflectionCol
 		}
 		if reflectionRow != -1 {
-			partOneTotal += 100 * reflectionRow
+			partTwoTotal += 100 * reflectionRow
 		}
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
-func findReflectionCol(puzzle []string) int {
+func findSmudgedReflectionCol(puzzle []string) int {
 	for i := 1; i < len(puzzle[0]); i++ {
-		validReflection := true
+		imperfections := 0
 	lineLoop:
 		for _, line := range puzzle {
 			for j := 0; j < i; j++ {
@@ -48,21 +48,23 @@ func findReflectionCol(puzzle []string) int {
 					break
 				}
 				if line[i+j] != line[i-j-1] {
-					validReflection = false
-					break lineLoop
+					imperfections++
+					if imperfections > 1 {
+						break lineLoop
+					}
 				}
 			}
 		}
-		if validReflection {
+		if imperfections == 1 {
 			return i
 		}
 	}
 	return -1
 }
 
-func findReflectionRow(puzzle []string) int {
+func findSmudgedReflectionRow(puzzle []string) int {
 	for i := 1; i < len(puzzle); i++ {
-		validReflection := true
+		imperfections := 0
 	colLoop:
 		for j := 0; j < len(puzzle[0]); j++ {
 			for k := 0; k < i; k++ {
@@ -72,12 +74,14 @@ func findReflectionRow(puzzle []string) int {
 					break
 				}
 				if puzzle[i+k][j] != puzzle[i-k-1][j] {
-					validReflection = false
-					break colLoop
+					imperfections++
+					if imperfections > 1 {
+						break colLoop
+					}
 				}
 			}
 		}
-		if validReflection {
+		if imperfections == 1 {
 			return i
 		}
 	}
