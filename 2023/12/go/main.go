@@ -19,32 +19,44 @@ const (
 
 type conditionRecord struct {
 	springMap             []springType
-	possibleDamagedCounts []int
+	possibleDamagedCounts [][]int
 	damagedSpringSizes    []int
 }
 
 var doDebugLogging = false
+var repeat = 5
+
+var cache = make(map[string]int)
 
 func main() {
-	partOneTotal := 0
+	partTwoTotal := 0
+	checked := 0
 	utils.IterateFileLines("../input.txt", func(line string) {
+		clear(cache)
 		record := parseLineToRecord(line)
 		debugPrint(record.springMap)
 		possibilities := findPossibilities(record.springMap, make([]springType, 0), record.possibleDamagedCounts, record.damagedSpringSizes, record.damagedSpringSizes)
-		partOneTotal += possibilities
+		partTwoTotal += possibilities
+		checked++
+		fmt.Println(checked)
 	})
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
 func parseStrToSpringTypes(str string, arr *[]springType) {
-	for _, char := range str {
-		if char == '.' {
-			*arr = append(*arr, operational)
-		} else if char == '#' {
-			*arr = append(*arr, damaged)
-		} else {
+	for i := 0; i < repeat; i++ {
+		if i > 0 {
 			*arr = append(*arr, unknown)
+		}
+		for _, char := range str {
+			if char == '.' {
+				*arr = append(*arr, operational)
+			} else if char == '#' {
+				*arr = append(*arr, damaged)
+			} else {
+				*arr = append(*arr, unknown)
+			}
 		}
 	}
 }
@@ -52,34 +64,44 @@ func parseStrToSpringTypes(str string, arr *[]springType) {
 func parseLineToRecord(line string) conditionRecord {
 	record := conditionRecord{
 		springMap:             make([]springType, 0),
-		possibleDamagedCounts: make([]int, 0),
+		possibleDamagedCounts: make([][]int, 0),
 		damagedSpringSizes:    make([]int, 0),
 	}
 
 	splits := strings.Fields(line)
 	parseStrToSpringTypes(splits[0], &record.springMap)
 
-	for i, t := range record.springMap {
-		count := 0
-		if t != operational {
-			count = 1
-			for j := i + 1; j < len(record.springMap); j++ {
-				if record.springMap[j] != operational {
-					count++
+	record.possibleDamagedCounts = getPossibleDamagedCounts(record.springMap)
+
+	for i := 0; i < repeat; i++ {
+		for _, char := range strings.Split(splits[1], ",") {
+			num, _ := strconv.Atoi(char)
+			record.damagedSpringSizes = append(record.damagedSpringSizes, num)
+		}
+	}
+
+	return record
+}
+
+func getPossibleDamagedCounts(input []springType) [][]int {
+	counts := make([][]int, 0)
+	for i, t := range input {
+		possibilities := make([]int, 0)
+		if t != operational && (i == 0 || input[i-1] != damaged) {
+			possibilities = append(possibilities, 1)
+			for j := i + 1; j < len(input); j++ {
+				if input[j] == damaged {
+					possibilities[len(possibilities)-1]++
+				} else if input[j] == unknown {
+					possibilities = append(possibilities, possibilities[len(possibilities)-1]+1)
 				} else {
 					break
 				}
 			}
 		}
-		record.possibleDamagedCounts = append(record.possibleDamagedCounts, count)
+		counts = append(counts, possibilities)
 	}
-
-	for _, char := range strings.Split(splits[1], ",") {
-		num, _ := strconv.Atoi(char)
-		record.damagedSpringSizes = append(record.damagedSpringSizes, num)
-	}
-
-	return record
+	return counts
 }
 
 func getSpringCounts(springMap []springType) []int {
@@ -103,8 +125,12 @@ func getSpringCounts(springMap []springType) []int {
 	return counts
 }
 
-func findPossibilities(input, prefix []springType, possibleCounts, remainingSizes, initialSizes []int) int {
+func findPossibilities(input, prefix []springType, possibleCounts [][]int, remainingSizes, initialSizes []int) int {
 	possibilities := 0
+	cacheKey := getCacheKey(prefix, possibleCounts, remainingSizes)
+	if cache[cacheKey] > 0 {
+		return cache[cacheKey]
+	}
 
 	remainingSize := 0
 	for i := 1; i < len(remainingSizes); i++ {
@@ -113,40 +139,35 @@ func findPossibilities(input, prefix []springType, possibleCounts, remainingSize
 
 	currSize := remainingSizes[0]
 	soFar := make([]springType, 0)
+	hasSeenDamaged := false
 	for i := 0; i < len(possibleCounts)-remainingSize-currSize+1; i++ {
-		if possibleCounts[i] < currSize {
+		if input[i+len(prefix)] == damaged {
+			hasSeenDamaged = true
+		} else if hasSeenDamaged {
+			break
+		}
+
+		canPlaceCurr := false
+		for _, count := range possibleCounts[i] {
+			if count == currSize {
+				canPlaceCurr = true
+				break
+			}
+		}
+		if !canPlaceCurr {
 			soFar = append(soFar, operational)
 			continue
 		}
 		if len(remainingSizes) == 1 {
-			toCheck := make([]springType, len(prefix)+len(soFar))
-			for i, t := range prefix {
-				if input[i] == damaged {
-					toCheck[i] = damaged
-				} else {
-					toCheck[i] = t
-				}
-			}
-			offset := len(prefix)
-			for i, t := range soFar {
-				if input[offset+i] == damaged {
-					toCheck[offset+i] = damaged
-				} else {
-					toCheck[offset+i] = t
-				}
-			}
+			toCheck := append(prefix, soFar...)
 			for j := i; j < len(possibleCounts); j++ {
 				if (j - i) < currSize {
-					toCheck = append(toCheck, damaged)
-				} else if input[offset+j] == damaged {
 					toCheck = append(toCheck, damaged)
 				} else {
 					toCheck = append(toCheck, operational)
 				}
 			}
-			debugPrint(toCheck)
-			springCounts := getSpringCounts(toCheck)
-			if cmp.Equal(springCounts, initialSizes) {
+			if validate(input, toCheck, initialSizes, true) {
 				possibilities++
 			}
 		} else {
@@ -155,12 +176,42 @@ func findPossibilities(input, prefix []springType, possibleCounts, remainingSize
 				newPrefix = append(newPrefix, damaged)
 			}
 			newPrefix = append(newPrefix, operational)
-			possibilities += findPossibilities(input, newPrefix, possibleCounts[(i+currSize+1):], remainingSizes[1:], initialSizes)
+			if validate(input[:len(newPrefix)], newPrefix, initialSizes[:len(initialSizes)-len(remainingSizes)+1], false) {
+				possibilities += findPossibilities(input, newPrefix, possibleCounts[(i+currSize+1):], remainingSizes[1:], initialSizes)
+			}
 		}
 		soFar = append(soFar, operational)
 	}
 
+	cache[cacheKey] = possibilities
 	return possibilities
+}
+
+func validate(input, toMergeAndCheck []springType, expected []int, debug bool) bool {
+	merged := make([]springType, len(toMergeAndCheck))
+	for i, t := range toMergeAndCheck {
+		if input[i] == damaged {
+			merged[i] = damaged
+		} else {
+			merged[i] = t
+		}
+	}
+
+	if debug {
+		debugPrint(merged)
+	}
+	springCounts := getSpringCounts(merged)
+	return cmp.Equal(springCounts, expected)
+}
+
+func getCacheKey(prefix []springType, possibleCounts [][]int, remainingSizes []int) string {
+	prefixStringCounts := getSpringCounts(prefix)
+	prefixStr := make([]string, len(prefixStringCounts))
+	for i, v := range prefixStringCounts {
+		prefixStr[i] = strconv.Itoa(int(v))
+	}
+
+	return fmt.Sprintf("%s;%d;%d", strings.Join(prefixStr, ","), len(possibleCounts), len(remainingSizes))
 }
 
 func debugPrint(springMap []springType) {

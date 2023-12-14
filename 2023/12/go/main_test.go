@@ -41,3 +41,23 @@ func TestGetSpringCounts(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPossibleDamagedCounts(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected [][]int
+	}{
+		{"#???.##???", [][]int{{1, 2, 3, 4}, {}, {1, 2}, {1}, {}, {2, 3, 4, 5}, {}, {}, {1, 2}, {1}}},
+	}
+
+	for _, test := range tests {
+		input := make([]springType, 0)
+		parseStrToSpringTypes(test.input, &input)
+		got := getPossibleDamagedCounts(input)
+		want := test.expected
+
+		if !cmp.Equal(got, want) {
+			t.Errorf("getPossibleDamagedCounts(%q) = %v, want %v", test.input, got, want)
+		}
+	}
+}
