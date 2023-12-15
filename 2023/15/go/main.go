@@ -2,21 +2,82 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	aoc_utils "peterweightman.com/aoc/utils"
 )
 
+type lens struct {
+	label       string
+	focalLength int
+}
+
 func main() {
-	partOneTotal := 0
+	lightboxes := make(map[int][]lens)
 	lines := aoc_utils.ParseFileToLines("../input.txt")
-	input := strings.Join(lines, "")
-	splits := strings.Split(input, ",")
-	for _, split := range splits {
-		partOneTotal += runHashAlgorithm(split)
+	joinedLines := strings.Join(lines, "")
+	input := strings.Split(joinedLines, ",")
+	for _, cmd := range input {
+		if strings.HasSuffix(cmd, "-") {
+			label := cmd[:len(cmd)-1]
+			box := runHashAlgorithm(label)
+
+			lenses := lightboxes[box]
+			if lenses == nil {
+				continue
+			}
+			matchIdx := findMatchingLensIdx(lenses, label)
+			if matchIdx > -1 {
+				lenses = append(lenses[:matchIdx], lenses[matchIdx+1:]...)
+				lightboxes[box] = lenses
+			}
+		} else {
+			splits := strings.Split(cmd, "=")
+			label := splits[0]
+			focalLength, _ := strconv.Atoi(splits[1])
+			box := runHashAlgorithm(label)
+
+			newLens := lens{label, focalLength}
+			lenses := lightboxes[box]
+			if lenses == nil {
+				lightboxes[box] = []lens{newLens}
+				continue
+			} else {
+				matchIdx := findMatchingLensIdx(lenses, label)
+				if matchIdx > -1 {
+					updated := append(lenses[:matchIdx], newLens)
+					updated = append(updated, lenses[matchIdx+1:]...)
+					lightboxes[box] = updated
+				} else {
+					lenses = append(lenses, newLens)
+					lightboxes[box] = lenses
+				}
+			}
+		}
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	partTwoTotal := 0
+
+	for i, lenses := range lightboxes {
+		for j, lens := range lenses {
+			focusingPower := (1 + i) * (j + 1) * lens.focalLength
+			partTwoTotal += focusingPower
+		}
+	}
+
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func findMatchingLensIdx(lenses []lens, label string) int {
+	matchIdx := -1
+	for idx, lens := range lenses {
+		if lens.label == label {
+			matchIdx = idx
+			break
+		}
+	}
+	return matchIdx
 }
 
 func runHashAlgorithm(str string) int {
