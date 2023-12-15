@@ -45,10 +45,10 @@ func main() {
 	var partTwoTotal int
 
 	for i := 0; i < cycles; i++ {
-		tilted = tiltNorth(tilted)
-		tilted = tiltWest(tilted)
-		tilted = tiltSouth(tilted)
-		tilted = tiltEast(tilted)
+		tilted = tilt(tilted, "N")
+		tilted = tilt(tilted, "W")
+		tilted = tilt(tilted, "S")
+		tilted = tilt(tilted, "E")
 		load := calculateLoad(tilted)
 
 		state := gridToString(tilted)
@@ -78,124 +78,106 @@ func main() {
 	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
-func tiltNorth(grid [][]cellType) [][]cellType {
+func tilt(grid [][]cellType, dir string) [][]cellType {
 	newGrid := make([][]cellType, len(grid))
 	cols := len(grid[0])
-	for col := 0; col < cols; col++ {
-		for i, row := range grid {
-			if col == 0 {
-				newGrid[i] = make([]cellType, cols)
-			}
+	rows := len(grid)
 
-			if row[col] == rock {
-				if i == 0 {
-					newGrid[i][col] = rock
-				} else {
-					for j := i - 1; j >= 0; j-- {
-						if newGrid[j][col] != empty {
-							newGrid[j+1][col] = rock
-							break
-						} else if j == 0 {
-							newGrid[j][col] = rock
-						} else {
-							newGrid[j+1][col] = empty
-						}
-					}
-				}
-			} else {
-				newGrid[i][col] = row[col]
-			}
-		}
+	vertical := dir == "N" || dir == "S"
+	inlineIterationDiff := 1
+	if dir == "E" || dir == "S" {
+		inlineIterationDiff = -1
 	}
-	return newGrid
-}
 
-func tiltSouth(grid [][]cellType) [][]cellType {
-	newGrid := make([][]cellType, len(grid))
-	cols := len(grid[0])
-	for col := 0; col < cols; col++ {
-		for i := cols - 1; i >= 0; i-- {
-			if col == 0 {
-				newGrid[i] = make([]cellType, cols)
-			}
-			row := grid[i]
-			if row[col] == rock {
-				if i == cols-1 {
-					newGrid[i][col] = rock
-				} else {
-					for j := i + 1; j < cols; j++ {
-						if newGrid[j][col] != empty {
-							newGrid[j-1][col] = rock
-							break
-						} else if j == cols-1 {
-							newGrid[j][col] = rock
-						} else {
-							newGrid[j-1][col] = empty
-						}
-					}
-				}
-			} else {
-				newGrid[i][col] = row[col]
-			}
-		}
+	var inlineAxisStart, inlineAxisEnd, inlineAxisMax, crossAxisEnd int
+	if dir == "N" {
+		inlineAxisStart = 0
+		inlineAxisEnd = rows - 1
+		crossAxisEnd = cols
+	} else if dir == "E" {
+		inlineAxisStart = cols - 1
+		inlineAxisEnd = 0
+		crossAxisEnd = rows
+	} else if dir == "S" {
+		inlineAxisStart = rows - 1
+		inlineAxisEnd = 0
+		crossAxisEnd = cols
+	} else if dir == "W" {
+		inlineAxisStart = 0
+		inlineAxisEnd = cols - 1
+		crossAxisEnd = rows
+	} else {
+		panic("Invalid direction")
 	}
-	return newGrid
-}
 
-func tiltEast(grid [][]cellType) [][]cellType {
-	newGrid := make([][]cellType, len(grid))
-	cols := len(grid[0])
-	for i, row := range grid {
-		newGrid[i] = make([]cellType, cols)
-
-		for j := cols - 1; j >= 0; j-- {
-			if row[j] == rock {
-				if j == cols-1 {
-					newGrid[i][j] = rock
-				} else {
-					for k := j + 1; k < cols; k++ {
-						if newGrid[i][k] != empty {
-							newGrid[i][k-1] = rock
-							break
-						} else if k == cols-1 {
-							newGrid[i][k] = rock
-						} else {
-							newGrid[i][k-1] = empty
-						}
-					}
-				}
-			} else {
-				newGrid[i][j] = row[j]
-			}
-		}
+	if vertical {
+		inlineAxisMax = rows - 1
+	} else {
+		inlineAxisMax = cols - 1
 	}
-	return newGrid
-}
 
-func tiltWest(grid [][]cellType) [][]cellType {
-	newGrid := make([][]cellType, len(grid))
-	cols := len(grid[0])
-	for i, row := range grid {
-		newGrid[i] = make([]cellType, cols)
+	for i := inlineAxisStart; i >= 0 && i <= inlineAxisMax; i += inlineIterationDiff {
+		for j := 0; j < crossAxisEnd; j++ {
+			var row, col int
+			if vertical {
+				row = i
+				col = j
+			} else {
+				row = j
+				col = i
+			}
 
-		for j := 0; j < cols; j++ {
-			if row[j] == rock {
-				if j == 0 {
-					newGrid[i][j] = rock
+			if vertical && col == 0 {
+				newGrid[row] = make([]cellType, cols)
+			} else if !vertical && i == inlineAxisStart {
+				newGrid[row] = make([]cellType, cols)
+			}
+
+			cell := grid[row][col]
+
+			if cell == rock {
+				if i == inlineAxisStart {
+					newGrid[row][col] = rock
 				} else {
-					for k := j - 1; k >= 0; k-- {
-						if newGrid[i][k] != empty {
-							newGrid[i][k+1] = rock
-							break
-						} else if k == 0 {
-							newGrid[i][k] = rock
+					var inlineMin, inlineMax int
+					if inlineAxisStart < inlineAxisEnd {
+						inlineMin = inlineAxisStart
+						inlineMax = inlineAxisEnd
+					} else {
+						inlineMin = inlineAxisEnd
+						inlineMax = inlineAxisStart
+					}
+					for k := i - inlineIterationDiff; k >= inlineMin && k <= inlineMax; k -= inlineIterationDiff {
+						var newRow, newCol int
+						if vertical {
+							newRow = k
+							newCol = j
 						} else {
-							newGrid[i][k+1] = empty
+							newRow = j
+							newCol = k
+						}
+						newCell := newGrid[newRow][newCol]
+
+						if newCell != empty {
+							if vertical {
+								newGrid[newRow+inlineIterationDiff][newCol] = rock
+							} else {
+								newGrid[newRow][newCol+inlineIterationDiff] = rock
+							}
+							break
+						} else if k == inlineAxisStart {
+							newGrid[newRow][newCol] = rock
+						} else {
+							if vertical {
+								newGrid[newRow+inlineIterationDiff][newCol] = empty
+							} else {
+								newGrid[newRow][newCol+inlineIterationDiff] = empty
+							}
 						}
 					}
 				}
 			} else {
-				newGrid[i][j] = row[j]
+				newGrid[row][col] = cell
 			}
 		}
 	}
