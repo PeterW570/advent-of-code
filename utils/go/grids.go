@@ -10,6 +10,15 @@ type Coords struct {
 	Col int
 }
 
+type Dir int
+
+const (
+	North Dir = iota
+	East
+	South
+	West
+)
+
 func (c Coords) ToString() string {
 	return fmt.Sprintf("(%d,%d)", c.Col, c.Row)
 }
@@ -20,6 +29,21 @@ func (c Coords) IsEqual(x Coords) bool {
 
 func (c Coords) InBounds(minRow, maxRow, minCol, maxCol int) bool {
 	return c.Row >= minRow && c.Row <= maxRow && c.Col >= minCol && c.Col <= maxCol
+}
+
+func (c Coords) MoveInDir(direction Dir) Coords {
+	switch direction {
+	case North:
+		return c.Up()
+	case East:
+		return c.Right()
+	case South:
+		return c.Down()
+	case West:
+		return c.Left()
+	default:
+		panic("Invalid direction")
+	}
 }
 
 func (c Coords) Up() Coords {
