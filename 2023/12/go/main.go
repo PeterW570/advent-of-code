@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	utils "peterweightman.com/aoc/utils"
 )
 
@@ -17,216 +16,129 @@ const (
 	unknown
 )
 
-type conditionRecord struct {
-	springMap             []springType
-	possibleDamagedCounts [][]int
-	damagedSpringSizes    []int
+var charToType = map[rune]springType{
+	'.': operational,
+	'#': damaged,
+	'?': unknown,
 }
 
-var doDebugLogging = false
-var repeat = 5
+type parsedInput struct {
+	springMap string
+	sizes     []int
+}
 
+var repeat = 5
 var cache = make(map[string]int)
 
 func main() {
-	partTwoTotal := 0
-	checked := 0
+	total := 0
 	utils.IterateFileLines("../input.txt", func(line string) {
-		clear(cache)
-		record := parseLineToRecord(line)
-		debugPrint(record.springMap)
-		possibilities := findPossibilities(record.springMap, make([]springType, 0), record.possibleDamagedCounts, record.damagedSpringSizes, record.damagedSpringSizes)
-		partTwoTotal += possibilities
-		checked++
-		fmt.Println(checked)
+		parsed := parseLine(line)
+		possibilities := findPossibilities(parsed.springMap, parsed.sizes)
+		total += possibilities
 	})
 
-	fmt.Printf("Part 2: %d\n", partTwoTotal)
+	fmt.Printf("Part 2: %d\n", total)
 }
 
-func parseStrToSpringTypes(str string, arr *[]springType) {
+func parseLine(line string) parsedInput {
+	splits := strings.Fields(line)
+
+	expanded := ""
 	for i := 0; i < repeat; i++ {
 		if i > 0 {
-			*arr = append(*arr, unknown)
+			expanded += "?"
 		}
-		for _, char := range str {
-			if char == '.' {
-				*arr = append(*arr, operational)
-			} else if char == '#' {
-				*arr = append(*arr, damaged)
-			} else {
-				*arr = append(*arr, unknown)
-			}
-		}
+		expanded += splits[0]
 	}
-}
+	simplified := simplifyInput(expanded)
 
-func parseLineToRecord(line string) conditionRecord {
-	record := conditionRecord{
-		springMap:             make([]springType, 0),
-		possibleDamagedCounts: make([][]int, 0),
-		damagedSpringSizes:    make([]int, 0),
-	}
-
-	splits := strings.Fields(line)
-	parseStrToSpringTypes(splits[0], &record.springMap)
-
-	record.possibleDamagedCounts = getPossibleDamagedCounts(record.springMap)
-
+	sizes := make([]int, 0)
 	for i := 0; i < repeat; i++ {
 		for _, char := range strings.Split(splits[1], ",") {
 			num, _ := strconv.Atoi(char)
-			record.damagedSpringSizes = append(record.damagedSpringSizes, num)
+			sizes = append(sizes, num)
 		}
 	}
 
-	return record
-}
-
-func getPossibleDamagedCounts(input []springType) [][]int {
-	counts := make([][]int, 0)
-	for i, t := range input {
-		possibilities := make([]int, 0)
-		if t != operational && (i == 0 || input[i-1] != damaged) {
-			possibilities = append(possibilities, 1)
-			for j := i + 1; j < len(input); j++ {
-				if input[j] == damaged {
-					possibilities[len(possibilities)-1]++
-				} else if input[j] == unknown {
-					possibilities = append(possibilities, possibilities[len(possibilities)-1]+1)
-				} else {
-					break
-				}
-			}
-		}
-		counts = append(counts, possibilities)
+	return parsedInput{
+		springMap: simplified,
+		sizes:     sizes,
 	}
-	return counts
 }
 
-func getSpringCounts(springMap []springType) []int {
+func simplifyInput(input string) string {
+	simplified := input[:1]
+	prev := rune(input[0])
+	for _, char := range input[1:] {
+		if charToType[char] != operational || charToType[prev] != operational {
+			simplified += string(char)
+		}
+		prev = char
+	}
+	return simplified
+}
+
+func getSpringCounts(springMap string) []int {
 	counts := make([]int, 0)
-	for i := 0; i < len(springMap); i++ {
-		t := springMap[i]
-		if t == operational {
-			continue
-		}
-		count := 1
-		for j := i + 1; j < len(springMap); j++ {
-			if springMap[j] == t {
-				count++
-			} else {
-				break
-			}
-		}
-		counts = append(counts, count)
-		i += count - 1
+	for _, damaged := range strings.Fields(strings.ReplaceAll(springMap, ".", " ")) {
+		counts = append(counts, len(damaged))
 	}
 	return counts
 }
 
-func findPossibilities(input, prefix []springType, possibleCounts [][]int, remainingSizes, initialSizes []int) int {
-	possibilities := 0
-	cacheKey := getCacheKey(prefix, possibleCounts, remainingSizes)
-	if cache[cacheKey] > 0 {
-		return cache[cacheKey]
+func setCacheAndReturn(key string, toReturn int) int {
+	cache[key] = toReturn
+	return toReturn
+}
+
+func findPossibilities(springMap string, sizes []int) int {
+	key := springMap
+	for _, size := range sizes {
+		key += "," + strconv.Itoa(size)
 	}
 
-	remainingSize := 0
-	for i := 1; i < len(remainingSizes); i++ {
-		remainingSize += 1 + remainingSizes[i]
-	}
-
-	currSize := remainingSizes[0]
-	soFar := make([]springType, 0)
-	hasSeenDamaged := false
-	for i := 0; i < len(possibleCounts)-remainingSize-currSize+1; i++ {
-		if input[i+len(prefix)] == damaged {
-			hasSeenDamaged = true
-		} else if hasSeenDamaged {
-			break
-		}
-
-		canPlaceCurr := false
-		for _, count := range possibleCounts[i] {
-			if count == currSize {
-				canPlaceCurr = true
-				break
-			}
-		}
-		if !canPlaceCurr {
-			soFar = append(soFar, operational)
-			continue
-		}
-		if len(remainingSizes) == 1 {
-			toCheck := append(prefix, soFar...)
-			for j := i; j < len(possibleCounts); j++ {
-				if (j - i) < currSize {
-					toCheck = append(toCheck, damaged)
-				} else {
-					toCheck = append(toCheck, operational)
-				}
-			}
-			if validate(input, toCheck, initialSizes, true) {
-				possibilities++
-			}
+	if len(springMap) == 0 {
+		if len(sizes) == 0 {
+			return setCacheAndReturn(key, 1)
 		} else {
-			newPrefix := append(prefix, soFar...)
-			for j := 0; j < currSize; j++ {
-				newPrefix = append(newPrefix, damaged)
-			}
-			newPrefix = append(newPrefix, operational)
-			if validate(input[:len(newPrefix)], newPrefix, initialSizes[:len(initialSizes)-len(remainingSizes)+1], false) {
-				possibilities += findPossibilities(input, newPrefix, possibleCounts[(i+currSize+1):], remainingSizes[1:], initialSizes)
-			}
+			return setCacheAndReturn(key, 0)
 		}
-		soFar = append(soFar, operational)
-	}
-
-	cache[cacheKey] = possibilities
-	return possibilities
-}
-
-func validate(input, toMergeAndCheck []springType, expected []int, debug bool) bool {
-	merged := make([]springType, len(toMergeAndCheck))
-	for i, t := range toMergeAndCheck {
-		if input[i] == damaged {
-			merged[i] = damaged
+	} else if len(sizes) == 0 {
+		if strings.Contains(springMap, "#") {
+			return setCacheAndReturn(key, 0)
 		} else {
-			merged[i] = t
+			return setCacheAndReturn(key, 1)
 		}
 	}
 
-	if debug {
-		debugPrint(merged)
-	}
-	springCounts := getSpringCounts(merged)
-	return cmp.Equal(springCounts, expected)
-}
-
-func getCacheKey(prefix []springType, possibleCounts [][]int, remainingSizes []int) string {
-	prefixStringCounts := getSpringCounts(prefix)
-	prefixStr := make([]string, len(prefixStringCounts))
-	for i, v := range prefixStringCounts {
-		prefixStr[i] = strconv.Itoa(int(v))
+	if cached, ok := cache[key]; ok {
+		return cached
 	}
 
-	return fmt.Sprintf("%s;%d;%d", strings.Join(prefixStr, ","), len(possibleCounts), len(remainingSizes))
-}
-
-func debugPrint(springMap []springType) {
-	if !doDebugLogging {
-		return
-	}
-	for _, t := range springMap {
-		switch t {
-		case operational:
-			fmt.Print(".")
-		case damaged:
-			fmt.Print("#")
-		case unknown:
-			fmt.Print("?")
+	var possibilities int
+	switch charToType[rune(springMap[0])] {
+	case operational:
+		possibilities = findPossibilities(springMap[1:], sizes)
+	case damaged:
+		currSize := sizes[0]
+		if len(springMap) < currSize {
+			possibilities = 0
+		} else if strings.Contains(springMap[:currSize], ".") {
+			possibilities = 0
+		} else if len(springMap) > currSize && charToType[rune(springMap[currSize])] == damaged {
+			possibilities = 0
+		} else if len(springMap) == currSize {
+			possibilities = findPossibilities(springMap[currSize:], sizes[1:])
+		} else {
+			possibilities = findPossibilities(springMap[currSize+1:], sizes[1:])
 		}
+	case unknown:
+		possibilities = findPossibilities("."+springMap[1:], sizes) +
+			findPossibilities("#"+springMap[1:], sizes)
+	default:
+		panic("Unrecognised char: " + string(springMap[0]))
 	}
-	fmt.Println()
+
+	return setCacheAndReturn(key, possibilities)
 }
