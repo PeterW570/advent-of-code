@@ -41,24 +41,54 @@ func main() {
 		grid = append(grid, gridLine)
 	})
 
+	partTwoTotal := 0
+
+	rows := len(grid)
+	cols := len(grid[0])
+	for rowIdx := range grid {
+		fromWest := calculateEnergised(grid, utils.Coords{Row: rowIdx, Col: 0}, utils.East)
+		if fromWest > partTwoTotal {
+			partTwoTotal = fromWest
+		}
+		fromEast := calculateEnergised(grid, utils.Coords{Row: rowIdx, Col: cols - 1}, utils.West)
+		if fromEast > partTwoTotal {
+			partTwoTotal = fromEast
+		}
+	}
+	for colIdx := range grid[0] {
+		fromNorth := calculateEnergised(grid, utils.Coords{Row: 0, Col: colIdx}, utils.South)
+		if fromNorth > partTwoTotal {
+			partTwoTotal = fromNorth
+		}
+		fromSouth := calculateEnergised(grid, utils.Coords{Row: rows - 1, Col: colIdx}, utils.North)
+		if fromSouth > partTwoTotal {
+			partTwoTotal = fromSouth
+		}
+	}
+
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func calculateEnergised(grid [][]cellType, start utils.Coords, dir utils.Dir) int {
 	visited := make([][]bool, len(grid))
 	for i := 0; i < len(grid); i++ {
 		visited[i] = make([]bool, len(grid[i]))
 	}
 	allPathEntries := make([]pathEntry, 0)
 
-	traversePath(grid, &visited, &allPathEntries, utils.Coords{Row: 0, Col: 0}, utils.East)
+	traversePath(grid, &visited, &allPathEntries, start, dir)
 
-	partOneTotal := 0
+	energised := 0
 	for i := 0; i < len(visited); i++ {
 		for j := 0; j < len(visited[i]); j++ {
 			if visited[i][j] {
-				partOneTotal++
+				energised++
 			}
 		}
 	}
+
 	// printVisited(visited)
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	return energised
 }
 
 func traversePath(grid [][]cellType, visited *[][]bool, allPathEntries *[]pathEntry, currPos utils.Coords, direction utils.Dir) {
@@ -125,6 +155,7 @@ func traversePath(grid [][]cellType, visited *[][]bool, allPathEntries *[]pathEn
 	}
 }
 
+//lint:ignore U1000 debugging helper fn
 func printVisited(visited [][]bool) {
 	for i := 0; i < len(visited); i++ {
 		for j := 0; j < len(visited[i]); j++ {
