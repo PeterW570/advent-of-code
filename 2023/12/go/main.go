@@ -87,58 +87,57 @@ func getSpringCounts(springMap string) []int {
 	return counts
 }
 
-func setCacheAndReturn(key string, toReturn int) int {
-	cache[key] = toReturn
-	return toReturn
-}
-
-func findPossibilities(springMap string, sizes []int) int {
-	key := springMap
+func cachedFindPossibilities(springMap string, sizes []int) int {
+	cacheKey := springMap
 	for _, size := range sizes {
-		key += "," + strconv.Itoa(size)
+		cacheKey += "," + strconv.Itoa(size)
 	}
 
-	if len(springMap) == 0 {
-		if len(sizes) == 0 {
-			return setCacheAndReturn(key, 1)
-		} else {
-			return setCacheAndReturn(key, 0)
-		}
-	} else if len(sizes) == 0 {
-		if strings.Contains(springMap, "#") {
-			return setCacheAndReturn(key, 0)
-		} else {
-			return setCacheAndReturn(key, 1)
-		}
-	}
-
-	if cached, ok := cache[key]; ok {
+	if cached, ok := cache[cacheKey]; ok {
 		return cached
 	}
 
-	var possibilities int
+	possibilities := findPossibilities(springMap, sizes)
+
+	cache[cacheKey] = possibilities
+	return possibilities
+}
+
+func findPossibilities(springMap string, sizes []int) int {
+	if len(springMap) == 0 {
+		if len(sizes) == 0 {
+			return 1
+		} else {
+			return 0
+		}
+	} else if len(sizes) == 0 {
+		if strings.Contains(springMap, "#") {
+			return 0
+		} else {
+			return 1
+		}
+	}
+
 	switch charToType[rune(springMap[0])] {
 	case operational:
-		possibilities = findPossibilities(springMap[1:], sizes)
+		return cachedFindPossibilities(springMap[1:], sizes)
 	case damaged:
 		currSize := sizes[0]
 		if len(springMap) < currSize {
-			possibilities = 0
+			return 0
 		} else if strings.Contains(springMap[:currSize], ".") {
-			possibilities = 0
+			return 0
 		} else if len(springMap) > currSize && charToType[rune(springMap[currSize])] == damaged {
-			possibilities = 0
+			return 0
 		} else if len(springMap) == currSize {
-			possibilities = findPossibilities(springMap[currSize:], sizes[1:])
+			return cachedFindPossibilities(springMap[currSize:], sizes[1:])
 		} else {
-			possibilities = findPossibilities(springMap[currSize+1:], sizes[1:])
+			return cachedFindPossibilities(springMap[currSize+1:], sizes[1:])
 		}
 	case unknown:
-		possibilities = findPossibilities("."+springMap[1:], sizes) +
-			findPossibilities("#"+springMap[1:], sizes)
+		return cachedFindPossibilities("."+springMap[1:], sizes) +
+			cachedFindPossibilities("#"+springMap[1:], sizes)
 	default:
 		panic("Unrecognised char: " + string(springMap[0]))
 	}
-
-	return setCacheAndReturn(key, possibilities)
 }
