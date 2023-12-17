@@ -3,6 +3,8 @@ package aoc_utils
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type Coords struct {
@@ -13,14 +15,45 @@ type Coords struct {
 type Dir int
 
 const (
-	North Dir = iota
+	North Dir = iota + 1
 	East
 	South
 	West
 )
 
+func OppositeDir(dir Dir) Dir {
+	switch dir {
+	case North:
+		return South
+	case East:
+		return West
+	case South:
+		return North
+	case West:
+		return East
+	default:
+		panic("Unexpected dir")
+	}
+}
+
 func (c Coords) ToString() string {
 	return fmt.Sprintf("(%d,%d)", c.Col, c.Row)
+}
+
+func StrToCoords(str string) Coords {
+	split := strings.Split(str, ",")
+	col, err := strconv.Atoi(split[0][1:])
+	if err != nil {
+		panic("Couldn't parse col")
+	}
+	row, err := strconv.Atoi(split[1][:len(split[1])-1])
+	if err != nil {
+		panic("Couldn't parse row")
+	}
+	return Coords{
+		Row: row,
+		Col: col,
+	}
 }
 
 func (c Coords) IsEqual(x Coords) bool {
