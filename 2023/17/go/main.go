@@ -1,10 +1,9 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
-	"math"
 	"strconv"
-	"strings"
 
 	utils "peterweightman.com/aoc/utils"
 )
@@ -12,7 +11,43 @@ import (
 type vertex struct {
 	coords        utils.Coords
 	dirInto       utils.Dir
-	straightCount int
+	distFromStart float64
+}
+
+type item struct {
+	value vertex
+	cost  int
+	// The index is needed by update and is maintained by the heap.Interface methods.
+	index int // The index of the item in the heap.
+}
+
+type PriorityQueue []*item
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+func (pq PriorityQueue) Less(i, j int) bool {
+	// We want Pop to give us the smallest distance.
+	return pq[i].cost < pq[j].cost
+}
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+func (pq *PriorityQueue) Push(x any) {
+	n := len(*pq)
+	item := x.(*item)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = nil  // avoid memory leak
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
 }
 
 func main() {
@@ -31,132 +66,121 @@ func main() {
 	start := utils.Coords{Row: 0, Col: 0}
 	end := utils.Coords{Row: len(grid) - 1, Col: len(grid[0]) - 1}
 
-	partOneTotal := solve(grid, vertices, start, end)
-	fmt.Printf("Part 1: %d\n", int(partOneTotal))
+	partTwoTotal := solve(grid, vertices, start, end, 4, 10)
+	fmt.Printf("Part 2: %d\n", int(partTwoTotal))
 }
 
 func vertexKey(v vertex) string {
-	return fmt.Sprintf("%s;%d;%d", v.coords.ToString(), v.dirInto, v.straightCount)
+	return fmt.Sprintf("%s;%d", v.coords.ToString(), v.dirInto)
 }
 
-func solve(grid [][]float64, gridCoords []utils.Coords, start utils.Coords, end utils.Coords) float64 {
+func solve(grid [][]float64, gridCoords []utils.Coords, start, end utils.Coords, minStraight, maxStraight int) float64 {
 	distFromStart := make(map[string]float64)
 	prev := make(map[string]vertex)
 
-	queue := []vertex{
-		{coords: start},
+	queue := make(PriorityQueue, 2)
+	queue[0] = &item{
+		value: vertex{coords: start, dirInto: utils.East},
+		cost:  0,
+		index: 0,
 	}
-	distFromStart[vertexKey(queue[0])] = 0
-	seen := vertexKey(queue[0])
+	queue[1] = &item{
+		value: vertex{coords: start, dirInto: utils.South},
+		cost:  0,
+		index: 1,
+	}
+	heap.Init(&queue)
+	distFromStart[vertexKey(queue[0].value)] = 0
+	distFromStart[vertexKey(queue[1].value)] = 0
+	visited := make(map[string]bool)
 
 	var endVertex vertex
 	for {
-		if len(queue) == 0 {
+		if queue.Len() == 0 {
 			break
 		}
 
-		posIdx, curr := getNextBestVertex(queue, distFromStart)
+		queueItem := heap.Pop(&queue).(*item)
+		curr := queueItem.value
 		if curr.coords.IsEqual(end) {
 			endVertex = curr
 			break
 		}
-		if posIdx == -1 {
-			panic("couldn't find next best vertex")
+		if visited[vertexKey(curr)] {
+			continue
 		}
-		if posIdx == len(queue)-1 {
-			queue = queue[:posIdx]
-		} else {
-			queue = append(queue[:posIdx], queue[posIdx+1:]...)
-		}
+		visited[vertexKey(curr)] = true
 
-		neighbours := getNeighbours(curr, seen, grid)
-		for _, v := range neighbours {
+		neighbours := getNeighbours(curr, minStraight, maxStraight, grid)
+		for _, neighbour := range neighbours {
+			v := neighbour.v
 			neighbourKey := vertexKey(v)
-			dist := distFromStart[vertexKey(curr)] + grid[v.coords.Row][v.coords.Col]
+			dist := v.distFromStart
 
 			neighbourDist, alreadySet := distFromStart[neighbourKey]
 
 			if !alreadySet || dist < neighbourDist {
 				distFromStart[neighbourKey] = dist
-				prev[neighbourKey] = curr
+				prev[neighbourKey] = neighbour.from
 			}
 
-			seen += fmt.Sprintf("|%s", vertexKey(v))
-			queue = append(queue, v)
+			heap.Push(&queue, &item{
+				value: v,
+				cost:  int(v.distFromStart) + v.coords.ManhattenDistanceTo(end),
+			})
 		}
 	}
 
-	debugPath(grid, prev, endVertex)
+	// debugPath(grid, prev, endVertex)
 	return distFromStart[vertexKey(endVertex)]
 }
 
-func getNextBestVertex(vertices []vertex, dists map[string]float64) (int, vertex) {
-	bestDist := math.Inf(1)
-	var bestVertex vertex
-	bestVertexIdx := -1
-
-	for i, v := range vertices {
-		dist := dists[vertexKey(v)]
-		if dist < bestDist {
-			bestVertex = v
-			bestDist = dist
-			bestVertexIdx = i
-		}
-	}
-
-	return bestVertexIdx, bestVertex
-}
-
 type neighbour struct {
-	dir    utils.Dir
-	coords utils.Coords
+	v    vertex
+	from vertex
 }
 
-func getNeighbours(curr vertex, seen string, grid [][]float64) []vertex {
-	vertices := make([]vertex, 0)
-	neighbours := []neighbour{
-		{dir: utils.North, coords: curr.coords.Up()},
-		{dir: utils.East, coords: curr.coords.Right()},
-		{dir: utils.South, coords: curr.coords.Down()},
-		{dir: utils.West, coords: curr.coords.Left()},
+func getNeighbours(curr vertex, minStraight, maxStraight int, grid [][]float64) []neighbour {
+	neighbours := make([]neighbour, 0)
+
+	var dirs = utils.PerpendicularDirs(curr.dirInto)
+	for _, dir := range dirs {
+		inDir := make([]neighbour, 0)
+		prev := curr
+		pos := curr.coords
+		distFromStart := curr.distFromStart
+		for i := 1; i <= maxStraight; i++ {
+			pos = pos.MoveInDir(dir)
+			if !pos.InBounds(0, len(grid)-1, 0, len(grid[0])-1) {
+				if i < minStraight {
+					inDir = make([]neighbour, 0)
+				}
+				break
+			}
+			distFromStart += grid[pos.Row][pos.Col]
+			if i < minStraight {
+				continue
+			}
+
+			v := vertex{
+				coords:        pos,
+				dirInto:       dir,
+				distFromStart: distFromStart,
+			}
+
+			inDir = append(inDir, neighbour{
+				v:    v,
+				from: prev,
+			})
+			prev = v
+		}
+		neighbours = append(neighbours, inDir...)
 	}
 
-	var backDir utils.Dir
-	if curr.dirInto > 0 { // special case for start vertex
-		backDir = utils.OppositeDir(curr.dirInto)
-	}
-
-	for _, x := range neighbours {
-		if x.dir == backDir {
-			continue
-		}
-		if !x.coords.InBounds(0, len(grid)-1, 0, len(grid[0])-1) {
-			continue
-		}
-		if x.dir == curr.dirInto && curr.straightCount == 3 {
-			continue
-		}
-		straightCount := 1
-		if x.dir == curr.dirInto {
-			straightCount = curr.straightCount + 1
-		}
-
-		v := vertex{
-			coords:        x.coords,
-			dirInto:       x.dir,
-			straightCount: straightCount,
-		}
-
-		if strings.Contains(seen, vertexKey(v)) {
-			continue
-		}
-
-		vertices = append(vertices, v)
-	}
-
-	return vertices
+	return neighbours
 }
 
+//lint:ignore U1000 debugging helper fn
 func debugPath(grid [][]float64, prev map[string]vertex, end vertex) {
 	toPrint := make([][]string, len(grid))
 	for i, row := range grid {

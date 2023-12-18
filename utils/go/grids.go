@@ -36,6 +36,21 @@ func OppositeDir(dir Dir) Dir {
 	}
 }
 
+func PerpendicularDirs(dir Dir) []Dir {
+	switch dir {
+	case North:
+		return []Dir{East, West}
+	case East:
+		return []Dir{North, South}
+	case South:
+		return []Dir{East, West}
+	case West:
+		return []Dir{North, South}
+	default:
+		panic("Unexpected dir")
+	}
+}
+
 func (c Coords) ToString() string {
 	return fmt.Sprintf("(%d,%d)", c.Col, c.Row)
 }
