@@ -94,9 +94,31 @@ func (c Coords) MoveInDir(direction Dir) Coords {
 	}
 }
 
+func (c Coords) MoveDistInDir(direction Dir, dist int) Coords {
+	switch direction {
+	case North:
+		return c.UpDist(dist)
+	case East:
+		return c.RightDist(dist)
+	case South:
+		return c.DownDist(dist)
+	case West:
+		return c.LeftDist(dist)
+	default:
+		panic("Invalid direction")
+	}
+}
+
 func (c Coords) Up() Coords {
 	return Coords{
 		Row: c.Row - 1,
+		Col: c.Col,
+	}
+}
+
+func (c Coords) UpDist(dist int) Coords {
+	return Coords{
+		Row: c.Row - dist,
 		Col: c.Col,
 	}
 }
@@ -108,6 +130,13 @@ func (c Coords) Down() Coords {
 	}
 }
 
+func (c Coords) DownDist(dist int) Coords {
+	return Coords{
+		Row: c.Row + dist,
+		Col: c.Col,
+	}
+}
+
 func (c Coords) Left() Coords {
 	return Coords{
 		Row: c.Row,
@@ -115,10 +144,24 @@ func (c Coords) Left() Coords {
 	}
 }
 
+func (c Coords) LeftDist(dist int) Coords {
+	return Coords{
+		Row: c.Row,
+		Col: c.Col - dist,
+	}
+}
+
 func (c Coords) Right() Coords {
 	return Coords{
 		Row: c.Row,
 		Col: c.Col + 1,
+	}
+}
+
+func (c Coords) RightDist(dist int) Coords {
+	return Coords{
+		Row: c.Row,
+		Col: c.Col + dist,
 	}
 }
 
