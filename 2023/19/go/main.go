@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -92,8 +93,96 @@ func main() {
 			}
 		}
 	}
-
 	fmt.Printf("Part 1: %d\n", partOneTotal)
+
+	mins := map[categoryType]float64{
+		extremelyCool: 1,
+		musical:       1,
+		aerodynamic:   1,
+		shiny:         1,
+	}
+	maxes := map[categoryType]float64{
+		extremelyCool: 4000,
+		musical:       4000,
+		aerodynamic:   4000,
+		shiny:         4000,
+	}
+	partTwoTotal := findApprovedRanges(workflowsByLabel["in"], workflowsByLabel, mins, maxes)
+	fmt.Printf("Part 2: %d\n", int(partTwoTotal))
+}
+
+func copyMap(toCopy map[categoryType]float64) map[categoryType]float64 {
+	copied := make(map[categoryType]float64)
+	for key, val := range toCopy {
+		copied[key] = val
+	}
+	return copied
+}
+
+func findApprovedRanges(start Workflow, workflowsByLabel map[string]Workflow, mins, maxes map[categoryType]float64) float64 {
+	var possibilities float64 = 0
+	currWorkflow := start
+
+	for {
+		var nextWorkFlow Workflow
+		for _, rule := range currWorkflow.Rules {
+			if rule.Condition == lessThan {
+				successMins := copyMap(mins)
+				successMaxes := copyMap(maxes)
+				successMaxes[rule.Category] = math.Min(maxes[rule.Category], float64(rule.Value-1))
+
+				mins[rule.Category] = math.Max(mins[rule.Category], float64(rule.Value))
+
+				if rule.OnSuccess == approve {
+					possibilities += calcCombinations(successMins, successMaxes)
+				} else if rule.OnSuccess != reject {
+					possibilities += findApprovedRanges(workflowsByLabel[rule.GoToLabel], workflowsByLabel, successMins, successMaxes)
+				}
+			} else if rule.Condition == greaterThan {
+				successMins := copyMap(mins)
+				successMaxes := copyMap(maxes)
+				successMins[rule.Category] = math.Max(mins[rule.Category], float64(rule.Value+1))
+
+				maxes[rule.Category] = math.Min(maxes[rule.Category], float64(rule.Value))
+
+				if rule.OnSuccess == approve {
+					possibilities += calcCombinations(successMins, successMaxes)
+				} else if rule.OnSuccess != reject {
+					possibilities += findApprovedRanges(workflowsByLabel[rule.GoToLabel], workflowsByLabel, successMins, successMaxes)
+				}
+			} else {
+				switch rule.OnSuccess {
+				case approve:
+					return possibilities + calcCombinations(mins, maxes)
+				case reject:
+					return possibilities
+				default:
+					return possibilities + findApprovedRanges(workflowsByLabel[rule.GoToLabel], workflowsByLabel, mins, maxes)
+				}
+			}
+		}
+		if nextWorkFlow.Label == currWorkflow.Label {
+			panic("Hopefully shouldn't happen")
+		} else {
+			currWorkflow = nextWorkFlow
+		}
+	}
+}
+
+func calcCombinations(mins, maxes map[categoryType]float64) float64 {
+	if mins[extremelyCool] > maxes[extremelyCool] {
+		return 0
+	} else if mins[musical] > maxes[musical] {
+		return 0
+	} else if mins[aerodynamic] > maxes[aerodynamic] {
+		return 0
+	} else if mins[shiny] > maxes[shiny] {
+		return 0
+	}
+	return (maxes[extremelyCool] + 1 - mins[extremelyCool]) *
+		(maxes[musical] + 1 - mins[musical]) *
+		(maxes[aerodynamic] + 1 - mins[aerodynamic]) *
+		(maxes[shiny] + 1 - mins[shiny])
 }
 
 func shouldApprovePart(part PartRatings, workflowsByLabel map[string]Workflow) bool {
