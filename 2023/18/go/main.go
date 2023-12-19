@@ -48,29 +48,33 @@ func main() {
 		length += count
 	})
 
-	interior := shoelace(vertices)
-	totalArea := picks(interior, length)
+	area := shoelace(vertices)
+	totalPointCount := picks(area, length)
 
-	fmt.Printf("Part 2: %d\n", totalArea)
+	fmt.Printf("Part 2: %d\n", totalPointCount)
 }
 
-// Shoelace formula
+// Shoelace formula (Triangle formula)
+// A = 1/2 Sum ( xi*yi+1 - xi+1*yi )
+// https://en.wikipedia.org/wiki/Shoelace_formula#Triangle_formula
 // https://www.themathdoctors.org/polygon-coordinates-and-areas/
 func shoelace(vertices []utils.Coords) int {
-	var a, b int
+	sum := 0
 	for i := 0; i < len(vertices)-1; i++ {
-		a += vertices[i].Col * vertices[i+1].Row
-		b += vertices[i].Row * vertices[i+1].Col
+		sum += vertices[i].Col*vertices[i+1].Row -
+			vertices[i].Row*vertices[i+1].Col
 	}
-	c := a - b
-	if c < 0 {
-		c = -c
+	if sum < 0 {
+		sum = -sum
 	}
-	return c / 2
+	return sum / 2
 }
 
 // Pick's theorem
+// A = i + b/2 - 1
+// A is area, i is interior points, b is boundary points
+// we want to find i + b => A + b/2 + 1
 // https://en.wikipedia.org/wiki/Pick%27s_theorem
-func picks(interiorArea, perimeter int) int {
-	return interiorArea + perimeter/2 + 1
+func picks(area, perimeterPoints int) int {
+	return area + perimeterPoints/2 + 1
 }
