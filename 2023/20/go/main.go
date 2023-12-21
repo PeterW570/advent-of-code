@@ -173,15 +173,54 @@ func main() {
 		}
 	}
 
-	var totalLow, totalHigh int
-	for i := 0; i < 1000; i++ {
-		low, high := pressButton(modulesById)
-		totalLow += low
-		totalHigh += high
-		fmt.Println()
+	// looking at the input.txt, the only input to rx is hp
+	// hp is a conjunction, so to send a low to rx, all inputs
+	// must be a high pulse.
+	cyclesToHighPulseToHp := make(map[string]int)
+	for id := range prevIds["hp"] {
+		cyclesToHighPulseToHp[id] = -1
 	}
-	fmt.Println(totalLow, totalHigh)
-	fmt.Printf("Part 1: %d\n", totalLow*totalHigh)
+
+	buttonPresses := 0
+	for {
+		buttonPresses++
+		highPulsesToHp := pressButton(modulesById)
+		allCyclesSet := true
+		for id, existingCount := range cyclesToHighPulseToHp {
+			hasPulsed, ok := highPulsesToHp[id]
+			if ok && hasPulsed && existingCount == -1 {
+				cyclesToHighPulseToHp[id] = buttonPresses
+			} else if existingCount == -1 {
+				allCyclesSet = false
+			}
+		}
+		if allCyclesSet {
+			break
+		}
+	}
+
+	var partTwoTotal int
+	cycles := make([]int, 0)
+	for _, count := range cyclesToHighPulseToHp {
+		cycles = append(cycles, count)
+	}
+	partTwoTotal = lcm(cycles[0], cycles[1])
+	for _, count := range cycles[2:] {
+		partTwoTotal = lcm(partTwoTotal, count)
+	}
+
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func gcd(x, y int) int {
+	for y != 0 {
+		x, y = y, x%y
+	}
+	return x
+}
+
+func lcm(x, y int) int {
+	return x * y / gcd(x, y)
 }
 
 type queueItem struct {
@@ -190,9 +229,11 @@ type queueItem struct {
 	p        pulse
 }
 
-func pressButton(modulesById map[string]module) (int, int) {
+func pressButton(modulesById map[string]module) map[string]bool {
 	lowPulses := 1 // initial pulse from button
 	highPulses := 0
+
+	highPulsesToHp := make(map[string]bool)
 
 	broadcaster := modulesById["broadcaster"]
 	next := broadcaster.getNextIds()
@@ -209,11 +250,14 @@ func pressButton(modulesById map[string]module) (int, int) {
 		currPT := queue[0]
 		queue = queue[1:]
 
-		fmt.Printf("%s -%d-> %s\n", currPT.sourceId, currPT.p, currPT.targetId)
+		// fmt.Printf("%s -%d-> %s\n", currPT.sourceId, currPT.p, currPT.targetId)
 		if currPT.p == lowPulse {
 			lowPulses++
 		} else {
 			highPulses++
+			if currPT.targetId == "hp" {
+				highPulsesToHp[currPT.sourceId] = true
+			}
 		}
 
 		curr, targetExists := modulesById[currPT.targetId]
@@ -228,5 +272,5 @@ func pressButton(modulesById map[string]module) (int, int) {
 		}
 	}
 
-	return lowPulses, highPulses
+	return highPulsesToHp
 }
