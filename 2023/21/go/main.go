@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	utils "peterweightman.com/aoc/utils"
@@ -26,70 +28,125 @@ func main() {
 		fileName = "input_example.txt"
 	}
 
-	rowCount := 0
-	colCount := 0
+	initialGridRowCount := 0
+	initialGridColCount := 0
+	var startCoord utils.Coords
 
-	grid := make(map[int]map[int]cellState)
+	grid := make(map[utils.Coords]cellState)
 
 	utils.IterateFileLines("../"+fileName, func(line string) {
-		row := make(map[int]cellState)
-		colCount = len(line)
+		initialGridColCount = len(line)
 
 		for i, char := range line {
+			coords := utils.Coords{Row: initialGridRowCount, Col: i}
 			cellStr := string(char)
 			if cellStr == "S" {
-				row[i] = possibleStep
+				grid[coords] = possibleStep
+				startCoord = coords
 			} else if cellStr == "#" {
-				row[i] = wall
+				grid[coords] = wall
 			} else {
-				row[i] = empty
+				grid[coords] = empty
 			}
 		}
 
-		grid[rowCount] = row
-		rowCount++
+		initialGridRowCount++
 	})
 
-	// debugCurrentState(grid, rowCount, colCount)
-
-	for i := 0; i < 64; i++ {
-		grid = takeSteps(grid, rowCount, colCount)
-		// debugCurrentState(grid, rowCount, colCount)
+	stepTarget := 26501365
+	edge := initialGridColCount - 1 - startCoord.Col
+	calculatedSteps := make([]int, 3)
+	currStep := 0
+	currScale := 1
+	for {
+		currStep++
+		grid = takeSteps(grid, initialGridRowCount, initialGridColCount, currScale)
+		if currStep == edge {
+			calculatedSteps[0] = countPossibleSteps(grid)
+			currScale++
+		} else if currStep == edge+initialGridColCount {
+			calculatedSteps[1] = countPossibleSteps(grid)
+			currScale++
+		} else if currStep == edge+initialGridColCount*2 {
+			calculatedSteps[2] = countPossibleSteps(grid)
+			break
+		}
 	}
 
-	partOneTotal := countPossibleSteps(grid)
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	if initialGridColCount != initialGridRowCount {
+		panic("Expected square grid")
+	}
+	gridSize := initialGridColCount
+
+	// https://en.wikipedia.org/wiki/Polynomial_regression
+	a := (calculatedSteps[2] + calculatedSteps[0] - 2*calculatedSteps[1]) / 2
+	b := calculatedSteps[1] - calculatedSteps[0] - a
+	c := calculatedSteps[0]
+	x := (stepTarget - edge) / gridSize
+	partTwoTotal := a*x*x + b*x + c
+
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
 }
 
-func countPossibleSteps(grid map[int]map[int]cellState) int {
+func countPossibleSteps(grid map[utils.Coords]cellState) int {
 	total := 0
 
-	for _, row := range grid {
-		for _, cell := range row {
-			if cell == possibleStep {
-				total++
-			}
+	for _, cell := range grid {
+		if cell == possibleStep {
+			total++
 		}
 	}
 
 	return total
 }
 
-func takeSteps(grid map[int]map[int]cellState, rows, cols int) map[int]map[int]cellState {
-	updatedGrid := make(map[int]map[int]cellState)
-
-	for i := 0; i < rows; i++ {
-		updatedGrid[i] = make(map[int]cellState)
+func checkStateInInfiniteGrid(coords utils.Coords, grid map[utils.Coords]cellState, rowCount, colCount int) cellState {
+	state, ok := grid[coords]
+	if ok {
+		return state
 	}
 
-	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
+	rowWithinBounds := coords.Row % rowCount
+	for {
+		if rowWithinBounds < 0 {
+			rowWithinBounds += rowCount
+		} else {
+			break
+		}
+	}
+
+	colWithinBounds := coords.Col % colCount
+	for {
+		if colWithinBounds < 0 {
+			colWithinBounds += colCount
+		} else {
+			break
+		}
+	}
+
+	state = grid[utils.Coords{
+		Row: rowWithinBounds,
+		Col: colWithinBounds,
+	}]
+
+	if state == wall {
+		return wall
+	} else {
+		return empty
+	}
+}
+
+func takeSteps(grid map[utils.Coords]cellState, rows, cols, scale int) map[utils.Coords]cellState {
+	updatedGrid := make(map[utils.Coords]cellState)
+
+	for i := -1 * (scale - 1) * rows; i < rows*scale; i++ {
+		for j := -1 * (scale - 1) * cols; j < cols*scale; j++ {
 			currPos := utils.Coords{Row: i, Col: j}
-			currentState := grid[i][j]
-			_, cellUpdated := updatedGrid[i][j]
+			currentState := checkStateInInfiniteGrid(currPos, grid, rows, cols)
+			_, cellUpdated := updatedGrid[currPos]
 
 			if currentState == wall {
-				updatedGrid[i][j] = wall
+				updatedGrid[currPos] = wall
 			} else if currentState == possibleStep {
 				possibleNext := []utils.Coords{
 					currPos.Up(),
@@ -98,18 +155,16 @@ func takeSteps(grid map[int]map[int]cellState, rows, cols int) map[int]map[int]c
 					currPos.Right(),
 				}
 				for _, coords := range possibleNext {
-					if !coords.InBounds(0, rows-1, 0, cols-1) {
-						continue
-					} else if grid[coords.Row][coords.Col] == wall {
+					if checkStateInInfiniteGrid(coords, grid, rows, cols) == wall {
 						continue
 					}
-					updatedGrid[coords.Row][coords.Col] = possibleStep
+					updatedGrid[coords] = possibleStep
 				}
 				if !cellUpdated {
-					updatedGrid[i][j] = empty
+					updatedGrid[currPos] = empty
 				}
 			} else if !cellUpdated {
-				updatedGrid[i][j] = empty
+				updatedGrid[currPos] = empty
 			}
 		}
 	}
@@ -118,22 +173,30 @@ func takeSteps(grid map[int]map[int]cellState, rows, cols int) map[int]map[int]c
 }
 
 //lint:ignore U1000 debugging helper fn
-func debugCurrentState(grid map[int]map[int]cellState, rows, cols int) {
-	toPrint := make([]string, rows)
-	for i, row := range grid {
-		rowToPrint := make([]string, cols)
-		for j, cell := range row {
+func debugCurrentState(grid map[utils.Coords]cellState, fromRow, toRow, fromCol, toCol int) {
+	f, err := os.Create("debug-grid.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	for i := fromRow; i < toRow; i++ {
+		rowToPrint := make([]string, toCol-fromCol)
+		for j := fromCol; j < toCol; j++ {
+			shiftedCol := j - fromCol
+			cell := grid[utils.Coords{Row: i, Col: j}]
 			switch cell {
 			case possibleStep:
-				rowToPrint[j] = "O"
+				rowToPrint[shiftedCol] = "O"
 			case wall:
-				rowToPrint[j] = "#"
+				rowToPrint[shiftedCol] = "#"
 			default:
-				rowToPrint[j] = "."
+				rowToPrint[shiftedCol] = "."
 			}
 		}
-		toPrint[i] = strings.Join(rowToPrint, "")
+		_, err := f.WriteString(strings.Join(rowToPrint, "") + "\n")
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	fmt.Println(strings.Join(toPrint, "\n"))
-	fmt.Println()
 }
