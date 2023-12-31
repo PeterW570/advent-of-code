@@ -80,6 +80,22 @@ func parseCoords(coords string) coord3d {
 	}
 }
 
+func deepCopySupportedMap(original map[int]map[int]bool) map[int]map[int]bool {
+	copiedMap := make(map[int]map[int]bool)
+
+	for key, innerMap := range original {
+		newInnerMap := make(map[int]bool)
+
+		for innerKey, innerValue := range innerMap {
+			newInnerMap[innerKey] = innerValue
+		}
+
+		copiedMap[key] = newInnerMap
+	}
+
+	return copiedMap
+}
+
 func main() {
 	var useExample bool
 	flag.BoolVar(&useExample, "use-example", false, "Use example. Default is false")
@@ -134,19 +150,23 @@ func main() {
 		})
 	}
 
-	partOneTotal := 0
+	partTwoTotal := 0
 	for i := range bricks {
-		canRemove := true
-		for _, supporting := range supportedMap {
-			if len(supporting) == 1 && supporting[i] {
-				canRemove = false
-				break
-			}
-		}
-		if canRemove {
-			partOneTotal++
-		}
+		// fmt.Println(len(bricks) - i)
+		cloned := deepCopySupportedMap(supportedMap)
+		partTwoTotal += totalSupported(cloned, i)
 	}
 
-	fmt.Printf("Part 1: %d\n", partOneTotal)
+	fmt.Printf("Part 2: %d\n", partTwoTotal)
+}
+
+func totalSupported(supportedMap map[int]map[int]bool, brickIdx int) int {
+	supportingCount := 0
+	for i, supporting := range supportedMap {
+		if supporting[brickIdx] && len(supporting) == 1 {
+			supportingCount += 1 + totalSupported(supportedMap, i)
+		}
+		delete(supporting, brickIdx)
+	}
+	return supportingCount
 }
