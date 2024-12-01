@@ -10,5 +10,5 @@ const testInput = `3   4
 3   3`;
 
 Deno.test("day 01", () => {
-	assertEquals(solve(testInput), 11);
+	assertEquals(solve(testInput), 31);
 });
