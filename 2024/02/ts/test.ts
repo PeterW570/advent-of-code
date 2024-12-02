@@ -9,6 +9,9 @@ const testInput = `7 6 4 2 1
 8 6 4 4 1
 1 3 6 7 9`;
 
+const test2 = "95 92 93 94 95 97";
+
 Deno.test("day 02", () => {
-	assertEquals(solve(testInput), 2);
+	assertEquals(solve(testInput), 4);
+	assertEquals(solve(test2), 1);
 });

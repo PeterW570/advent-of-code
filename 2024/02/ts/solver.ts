@@ -1,3 +1,41 @@
+const getDir = (diff: number) => diff / Math.abs(diff);
+const diffDirsAreEqual = (diffA: number, diffB: number) =>
+	getDir(diffA) === getDir(diffB);
+
+function checkReportSafety(report: string[]): number | null {
+	const diffs: number[] = [];
+	let unsafeIndex = null;
+	for (let i = 1; i < report.length; i++) {
+		const prev = parseInt(report[i - 1]);
+		const current = parseInt(report[i]);
+
+		const diff = current - prev;
+		if (Math.abs(diff) > 3 || diff === 0) {
+			unsafeIndex ??= i;
+			diffs.push(diff);
+		}
+
+		if (!diffs.length) {
+			diffs.push(diff);
+			continue;
+		}
+
+		const prevDiff = diffs[diffs.length - 1];
+		if (!diffDirsAreEqual(diff, prevDiff)) {
+			unsafeIndex ??= i;
+			diffs.push(diff);
+		}
+	}
+
+	return unsafeIndex;
+}
+
+function checkSafetyWithout(report: string[], withoutIdx: number): boolean {
+	const toCheck = report.slice();
+	toCheck.splice(withoutIdx, 1);
+	return checkReportSafety(toCheck) === null;
+}
+
 export function solve(input: string): number {
 	const lines = input.split("\n");
 
@@ -5,36 +43,11 @@ export function solve(input: string): number {
 	for (const line of lines) {
 		const report = line.split(" ");
 
-		const diffs: number[] = [];
-		let isSafe = true;
-		for (let i = 1; i < report.length; i++) {
-			const prev = parseInt(report[i - 1]);
-			const current = parseInt(report[i]);
-
-			if (prev === current) {
-				isSafe = false;
-				break;
-			}
-
-			const diff = current - prev;
-			if (Math.abs(diff) > 3) {
-				isSafe = false;
-				break;
-			}
-
-			if (!diffs.length) {
-				diffs.push(diff);
-				continue;
-			}
-
-			const prevDiff = diffs[diffs.length - 1];
-			if ((prevDiff > 0 && diff < 0) || (prevDiff < 0 && diff > 0)) {
-				isSafe = false;
-				break;
-			}
-		}
-
-		if (isSafe) safeReports++;
+		const unsafeIndex = checkReportSafety(report);
+		if (unsafeIndex === null) safeReports++;
+		else if (checkSafetyWithout(report, unsafeIndex)) safeReports++;
+		else if (checkSafetyWithout(report, unsafeIndex - 1)) safeReports++;
+		else if (checkSafetyWithout(report, 0)) safeReports++;
 	}
 
 	return safeReports;
