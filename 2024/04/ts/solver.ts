@@ -1,38 +1,23 @@
 type Dir = 1 | 0 | -1;
 
 export function solve(input: string): number {
-	let lines = input.split("\n");
+	let count = 0;
+
+	const lines = input.split("\n");
 	const rows = lines.length;
 	const cols = lines[0].length;
 
-	const buildLine = (row: number, col: number, rowDir: Dir, colDir: Dir) => {
-		let diagonal = "";
-		while (row >= 0 && col >= 0 && row < rows && col < cols) {
-			diagonal += lines[row][col];
+	for (let row = 1; row < rows - 1; row++) {
+		for (let col = 1; col < cols - 1; col++) {
+			const cell = lines[row][col];
+			if (cell !== "A") continue;
 
-			row += rowDir;
-			col += colDir;
+			const diagonalOne = lines[row - 1][col - 1] + lines[row + 1][col + 1];
+			const diagonalTwo = lines[row - 1][col + 1] + lines[row + 1][col - 1];
+
+			if (diagonalOne.match(/SM|MS/) && diagonalTwo.match(/SM|MS/)) count++;
 		}
-		return diagonal;
-	};
-
-	for (let col = 0; col < cols; col++) {
-		lines.push(buildLine(0, col, 1, 0));
-		lines.push(buildLine(0, col, 1, 1));
-		lines.push(buildLine(0, col, 1, -1));
-	}
-	for (let row = 1; row < rows; row++) {
-		lines.push(buildLine(row, 0, 1, 1));
-		lines.push(buildLine(row, cols - 1, 1, -1));
 	}
 
-	lines = lines.filter((x) => x.length >= 4);
-
-	return lines.reduce(
-		(count, line) =>
-			count +
-			Array.from(line.matchAll(/XMAS/g)).length +
-			Array.from(line.matchAll(/SAMX/g)).length,
-		0
-	);
+	return count;
 }

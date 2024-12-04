@@ -14,5 +14,5 @@ MAMMMXMMMM
 MXMXAXMASX`;
 
 Deno.test("day 04", () => {
-	assertEquals(solve(testInput), 18);
+	assertEquals(solve(testInput), 9);
 });
