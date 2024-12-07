@@ -5,14 +5,16 @@ function canCalculateTarget(target: number, initialValue: number, values: number
 
 	const added = initialValue + nextVal;
 	const multiplied = initialValue * nextVal;
+	const concatted = parseInt(`${initialValue}${nextVal}`);
 
 	if (remaining.length) {
 		return (
 			canCalculateTarget(target, added, remaining) ||
-			canCalculateTarget(target, multiplied, remaining)
+			canCalculateTarget(target, multiplied, remaining) ||
+			canCalculateTarget(target, concatted, remaining)
 		);
 	} else {
-		return added === target || multiplied === target;
+		return added === target || multiplied === target || concatted === target;
 	}
 }
 
