@@ -27,7 +27,7 @@ export function solve(input: string): number {
 		}
 	}
 
-	const antinodes: Pos[] = [];
+	const antinodeCoords = new Set<string>();
 	for (const group of Object.values(antennaGroups)) {
 		for (let i = 0; i < group.length - 1; i++) {
 			for (let j = i + 1; j < group.length; j++) {
@@ -36,24 +36,28 @@ export function solve(input: string): number {
 
 				const aToBDelta = getOffset(antennaA, antennaB);
 
-				const antiAB: Pos = {
-					row: antennaA.row - aToBDelta.dRow,
-					col: antennaA.col - aToBDelta.dCol,
+				let antinode: Pos = {
+					row: antennaA.row,
+					col: antennaA.col,
 				};
-				if (isInBounds(antiAB, rows, cols)) {
-					antinodes.push(antiAB);
+				while (isInBounds(antinode, rows, cols)) {
+					antinodeCoords.add(`${antinode.row},${antinode.col}`);
+					antinode.row -= aToBDelta.dRow;
+					antinode.col -= aToBDelta.dCol;
 				}
 
-				const antiBA: Pos = {
-					row: antennaB.row + aToBDelta.dRow,
-					col: antennaB.col + aToBDelta.dCol,
+				antinode = {
+					row: antennaB.row,
+					col: antennaB.col,
 				};
-				if (isInBounds(antiBA, rows, cols)) {
-					antinodes.push(antiBA);
+				while (isInBounds(antinode, rows, cols)) {
+					antinodeCoords.add(`${antinode.row},${antinode.col}`);
+					antinode.row += aToBDelta.dRow;
+					antinode.col += aToBDelta.dCol;
 				}
 			}
 		}
 	}
 
-	return new Set(antinodes.map((x) => `${x.row},${x.col}`)).size;
+	return antinodeCoords.size;
 }
