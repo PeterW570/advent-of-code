@@ -10,8 +10,8 @@ Deno.test("day 09", () => {
 	const converted = convertMapToBlocks(testInput);
 	assertEquals(converted[0].join(""), "00...111...2...333.44.5555.6666.777.888899");
 	assertEquals(converted[1], 9);
-	assertEquals(compact(converted[0], 9).join(""), "0099811188827773336446555566..............");
-	assertEquals(solve(testInput), 1928);
+	assertEquals(compact(converted[0], 9).join(""), "00992111777.44.333....5555.6666.....8888..");
+	assertEquals(solve(testInput), 2858);
 
 	const convertedMultiDigits = convertMapToBlocks(testWithMultiDigits);
 	assertEquals(convertedMultiDigits[0].join(""), "00...111....101010");

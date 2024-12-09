@@ -20,21 +20,40 @@ export function convertMapToBlocks(diskMap: string): [string[], number] {
 	return [blocks, id - 1];
 }
 
+const findFreeSpace = (blocks: string[], size: number) => {
+	let consecFree = 0;
+	for (let i = 0; i < blocks.length; i++) {
+		if (blocks[i] === ".") consecFree++;
+		else consecFree = 0;
+
+		if (consecFree === size) return i - consecFree + 1;
+	}
+	return -1;
+};
+
 export function compact(blocks: string[], maxId: number) {
 	let currentIdToMove = maxId;
-	while (true) {
-		const firstFree = blocks.indexOf(".");
-		const lastBlock = blocks.lastIndexOf(String(currentIdToMove));
-
-		if (firstFree === -1) break;
-
-		if (lastBlock > -1 && firstFree < lastBlock) {
-			blocks.splice(firstFree, 1, `${currentIdToMove}`);
-			blocks.splice(lastBlock, 1, ".");
-		} else if (currentIdToMove > 0) {
+	while (currentIdToMove >= 0) {
+		const toMove = blocks.indexOf(String(currentIdToMove));
+		if (toMove < 0) {
 			currentIdToMove--;
+			continue;
+		}
+		const blockSize = blocks.slice(toMove).filter((x) => x === String(currentIdToMove)).length;
+		const firstFree = findFreeSpace(blocks, blockSize);
+
+		if (firstFree === -1) {
+			currentIdToMove--;
+			continue;
+		}
+
+		if (toMove > -1 && firstFree < toMove) {
+			for (let i = 0; i < blockSize; i++) {
+				blocks.splice(firstFree + i, 1, `${currentIdToMove}`);
+				blocks.splice(toMove + i, 1, ".");
+			}
 		} else {
-			break;
+			currentIdToMove--;
 		}
 	}
 	return blocks;
