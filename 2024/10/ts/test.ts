@@ -2,18 +2,20 @@ import { assertEquals } from "jsr:@std/assert";
 
 import { solve } from "./solver.ts";
 
-const testInputSmall = `0123
-1234
-8765
-9876`;
+const testInputSmall = `.....0.
+..4321.
+..5..2.
+..6543.
+..7..4.
+..8765.
+..9....`;
 
-const testInputMid = `..90..9
-...1.98
-...2..7
-6543456
-765.987
-876....
-987....`;
+const testInputMid = `012345
+123456
+234567
+345678
+4.6789
+56789.`;
 
 const testInputBig = `89010123
 78121874
@@ -25,7 +27,7 @@ const testInputBig = `89010123
 10456732`;
 
 Deno.test("day 10", () => {
-	assertEquals(solve(testInputSmall), 1);
-	assertEquals(solve(testInputMid), 4);
-	assertEquals(solve(testInputBig), 36);
+	assertEquals(solve(testInputSmall), 3);
+	assertEquals(solve(testInputMid), 227);
+	assertEquals(solve(testInputBig), 81);
 });
