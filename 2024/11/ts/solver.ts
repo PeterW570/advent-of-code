@@ -1,28 +1,61 @@
-export function blink(input: string) {
-	const splits = input.split(" ");
-	const output = [];
+const cache: Map<
+	number,
+	{
+		next: number[];
+		countsAfterIterations: Map<number, number>;
+	}
+> = new Map();
 
-	for (const split of splits) {
-		if (split === "0") {
-			output.push("1");
-		} else if (split.length % 2 === 0) {
-			output.push(
-				`${parseInt(split.slice(0, split.length / 2))}`,
-				`${parseInt(split.slice(split.length / 2))}` // so that e.g. "00" becomes "0"
-			);
+const splitNum = (num: number) => {
+	const strNum = `${num}`;
+	if (strNum.length % 2 === 1) throw new Error("Can't split");
+	else {
+		return [
+			parseInt(strNum.slice(0, strNum.length / 2)),
+			parseInt(strNum.slice(strNum.length / 2)),
+		];
+	}
+};
+
+export function getCountAfterIterations(entries: number[], remainingIterations: number): number {
+	if (remainingIterations === 0) {
+		return entries.length;
+	}
+	let total = 0;
+
+	for (const entry of entries) {
+		const cached = cache.get(entry);
+		if (cached) {
+			const cachedCount = cached.countsAfterIterations.get(remainingIterations);
+			if (cachedCount) {
+				total += cachedCount;
+			} else {
+				const counts = getCountAfterIterations(cached.next, remainingIterations - 1);
+				cached.countsAfterIterations.set(remainingIterations, counts);
+				total += counts;
+			}
 		} else {
-			output.push(`${parseInt(split) * 2024}`);
+			let next: number[];
+			if (entry === 0) {
+				next = [1];
+			} else if (`${entry}`.length % 2 === 0) {
+				next = splitNum(entry);
+			} else {
+				next = [entry * 2024];
+			}
+			cache.set(entry, {
+				next,
+				countsAfterIterations: new Map(),
+			});
+			const counts = getCountAfterIterations(next, remainingIterations - 1);
+			cache.get(entry)!.countsAfterIterations.set(remainingIterations, counts);
+			total += counts;
 		}
 	}
 
-	return output.join(" ");
+	return total;
 }
 
 export function solve(input: string): number {
-	let transformed = input;
-	for (let i = 0; i < 25; i++) {
-		transformed = blink(transformed);
-	}
-
-	return transformed.split(" ").length;
+	return getCountAfterIterations(input.split(" ").map(Number), 75);
 }
