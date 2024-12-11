@@ -7,7 +7,7 @@ const dirs = [
 	[0, -1],
 ];
 
-function findTrailPeaks(lines: string[], pos: Pos): number {
+function findTrails(lines: string[], pos: Pos): number {
 	let peaks = 0;
 
 	const currentValue = parseInt(lines[pos.row][pos.col]);
@@ -24,7 +24,7 @@ function findTrailPeaks(lines: string[], pos: Pos): number {
 			if (possibleNext === 9) {
 				peaks++;
 			} else {
-				peaks += findTrailPeaks(lines, nextPos);
+				peaks += findTrails(lines, nextPos);
 			}
 		}
 	}
@@ -43,7 +43,7 @@ export function solve(input: string): number {
 		for (let col = 0; col < cols; col++) {
 			const cell = lines[row][col];
 			if (cell === "0") {
-				sum += findTrailPeaks(lines, { row, col });
+				sum += findTrails(lines, { row, col });
 			}
 		}
 	}
