@@ -20,9 +20,73 @@ interface Group {
 	children: GroupChild[];
 }
 
+function getGroupBounds(group: Group) {
+	let minRow = Infinity;
+	let minCol = Infinity;
+	let maxRow = -1;
+	let maxCol = -1;
+
+	for (const child of group.children) {
+		if (child.pos.row < minRow) minRow = child.pos.row;
+		if (child.pos.col < minCol) minCol = child.pos.col;
+		if (child.pos.row > maxRow) maxRow = child.pos.row;
+		if (child.pos.col > maxCol) maxCol = child.pos.col;
+	}
+
+	return { minRow, minCol, maxRow, maxCol };
+}
+
 function calculateGroupCost(group: Group) {
+	const bounds = getGroupBounds(group);
+
+	let perimeter = 0;
+	for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
+		for (let col = bounds.minCol; col <= bounds.maxCol; col++) {
+			if (!group.childrenPosSet.has(`${row},${col}`)) continue;
+
+			const hasNeighbourUp = group.childrenPosSet.has(`${row - 1},${col}`);
+			const hasNeighbourRight = group.childrenPosSet.has(`${row},${col + 1}`);
+			const hasNeighbourDownRight = group.childrenPosSet.has(`${row + 1},${col + 1}`);
+			const hasNeighbourDown = group.childrenPosSet.has(`${row + 1},${col}`);
+			const hasNeighbourLeft = group.childrenPosSet.has(`${row},${col - 1}`);
+			const hasNeighbourUpLeft = group.childrenPosSet.has(`${row - 1},${col - 1}`);
+
+			// example:
+			// [ ]
+			// [ ][ ][ ]
+			// [ ]   [ ][ ]
+
+			// tops that count:
+			// [x]
+			// [ ][x][ ]
+			// [ ]   [ ][x]
+			// count tops where none above, and doesn't have neighbour to the left with open top
+			if (!hasNeighbourUp && (hasNeighbourUpLeft || !hasNeighbourLeft)) perimeter++;
+
+			// rights that count:
+			// [x]
+			// [ ][ ][x]
+			// [x]   [ ][x]
+			// count rights where none to right, and doesn't have neighbour below with open right
+			if (!hasNeighbourRight && (hasNeighbourDownRight || !hasNeighbourDown)) perimeter++;
+
+			// bottoms that count:
+			// [ ]
+			// [ ][x][ ]
+			// [x]   [ ][x]
+			// count bottoms where none below, and doesn't have neighbour to the right with open bottom
+			if (!hasNeighbourDown && (hasNeighbourDownRight || !hasNeighbourRight)) perimeter++;
+
+			// lefts that count:
+			// [x]
+			// [ ][ ][ ]
+			// [ ]   [x][ ]
+			// count lefts where none to left, and doesn't have neighbour above with open left
+			if (!hasNeighbourLeft && (hasNeighbourUpLeft || !hasNeighbourUp)) perimeter++;
+		}
+	}
+
 	const area = group.children.length;
-	const perimeter = group.children.reduce((total, child) => total + 4 - child.neighbours, 0);
 	return area * perimeter;
 }
 
@@ -78,7 +142,10 @@ export function solve(input: string): number {
 		for (let col = 0; col < cols; col++) {
 			if (addedToGroups.has(`${row},${col}`)) continue;
 			const cell = lines[row][col];
-			groups.set(`${cell}:${row},${col}`, { childrenPosSet: new Set(), children: [] });
+			groups.set(`${cell}:${row},${col}`, {
+				childrenPosSet: new Set(),
+				children: [],
+			});
 			exploreGroup(`${cell}:${row},${col}`, { row, col });
 		}
 	}

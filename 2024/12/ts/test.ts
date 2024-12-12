@@ -24,8 +24,23 @@ MIIIIIJJEE
 MIIISIJEEE
 MMMISSJEEE`;
 
+const testInputFour = `EEEEE
+EXXXX
+EEEEE
+EXXXX
+EEEEE`;
+
+const testInputFive = `AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA`;
+
 Deno.test("day 11", () => {
-	assertEquals(solve(testInputOne), 140);
-	assertEquals(solve(testInputTwo), 772);
-	assertEquals(solve(testInputThree), 1930);
+	assertEquals(solve(testInputOne), 80);
+	assertEquals(solve(testInputTwo), 436);
+	assertEquals(solve(testInputThree), 1206);
+	assertEquals(solve(testInputFour), 236);
+	assertEquals(solve(testInputFive), 368);
 });
