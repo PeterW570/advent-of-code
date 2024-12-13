@@ -37,7 +37,7 @@ ABBAAA
 ABBAAA
 AAAAAA`;
 
-Deno.test("day 11", () => {
+Deno.test("day 12", () => {
 	assertEquals(solve(testInputOne), 80);
 	assertEquals(solve(testInputTwo), 436);
 	assertEquals(solve(testInputThree), 1206);

@@ -18,6 +18,6 @@ Button A: X+69, Y+23
 Button B: X+27, Y+71
 Prize: X=18641, Y=10279`;
 
-Deno.test("day 11", () => {
+Deno.test("day 13", () => {
 	assertEquals(solve(testInput), 480);
 });
