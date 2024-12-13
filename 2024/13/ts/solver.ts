@@ -9,7 +9,7 @@ interface Coords {
 	y: number;
 }
 
-function getCost({ buttonA, buttonB, prize }: ButtonSet) {
+export function getCost({ buttonA, buttonB, prize }: ButtonSet) {
 	// A*a_x + B*B_x = p_x
 	// A*a_y + B*b_y = p_y
 
@@ -46,8 +46,8 @@ export function solve(input: string): number {
 				y: parseInt(buttonBMatches[i][2]),
 			},
 			prize: {
-				x: parseInt(prizeMatches[i][1]),
-				y: parseInt(prizeMatches[i][2]),
+				x: parseInt(prizeMatches[i][1]) + 10000000000000,
+				y: parseInt(prizeMatches[i][2]) + 10000000000000,
 			},
 		});
 	}

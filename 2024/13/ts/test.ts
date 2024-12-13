@@ -1,23 +1,38 @@
 import { assertEquals } from "jsr:@std/assert";
 
-import { solve } from "./solver.ts";
-
-const testInput = `Button A: X+94, Y+34
-Button B: X+22, Y+67
-Prize: X=8400, Y=5400
-
-Button A: X+26, Y+66
-Button B: X+67, Y+21
-Prize: X=12748, Y=12176
-
-Button A: X+17, Y+86
-Button B: X+84, Y+37
-Prize: X=7870, Y=6450
-
-Button A: X+69, Y+23
-Button B: X+27, Y+71
-Prize: X=18641, Y=10279`;
+import { getCost } from "./solver.ts";
 
 Deno.test("day 13", () => {
-	assertEquals(solve(testInput), 480);
+	assertEquals(
+		getCost({
+			buttonA: { x: 94, y: 34 },
+			buttonB: { x: 22, y: 67 },
+			prize: { x: 8400, y: 5400 },
+		}),
+		280
+	);
+	assertEquals(
+		getCost({
+			buttonA: { x: 26, y: 66 },
+			buttonB: { x: 67, y: 21 },
+			prize: { x: 12748, y: 12176 },
+		}),
+		0
+	);
+	assertEquals(
+		getCost({
+			buttonA: { x: 17, y: 86 },
+			buttonB: { x: 84, y: 37 },
+			prize: { x: 7870, y: 6450 },
+		}),
+		200
+	);
+	assertEquals(
+		getCost({
+			buttonA: { x: 69, y: 23 },
+			buttonB: { x: 27, y: 71 },
+			prize: { x: 18641, y: 10279 },
+		}),
+		0
+	);
 });
