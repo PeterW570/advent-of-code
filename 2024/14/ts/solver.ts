@@ -77,15 +77,25 @@ export function solve(input: string, bounds: Bounds): number {
 		});
 	}
 
-	for (let i = 0; i < 100; i++) {
+	let iterations = 0;
+	let minSafetyFactor = Infinity;
+	let minSafetyFactorIterations = -1;
+	while (iterations < 10000) {
+		iterations++;
 		for (const robot of robots) {
 			moveRobot(robot, bounds);
 		}
+		const safetyFactor = findSafetyFactor(robots, bounds);
+		if (safetyFactor < minSafetyFactor) {
+			minSafetyFactor = safetyFactor;
+			minSafetyFactorIterations = iterations;
+			console.log(debugLocations(robots, bounds));
+			console.log(iterations);
+		}
 	}
 
-	// console.log(debugLocations(robots, bounds));
-
-	return findSafetyFactor(robots, bounds);
+	console.log("---");
+	return minSafetyFactorIterations;
 }
 
 function debugLocations(robots: IRobot[], bounds: Bounds) {
