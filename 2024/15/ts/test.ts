@@ -2,16 +2,25 @@ import { assertEquals } from "jsr:@std/assert";
 
 import { solve } from "./solver.ts";
 
-const testInputSmall = `########
-#..O.O.#
-##@.O..#
-#...O..#
-#.#.O..#
-#...O..#
-#......#
-########
+const testInputSmall = `#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
 
-<^^>>>vv<v>>v<<`;
+<vv<<^^<<^^`;
+
+const testMovingDownAroundWall = `#######
+#.....#
+#..O..#
+#@OO..#
+#.O.O.#
+#..#..#
+#######
+
+>>^^>>v`;
 
 const testInputLarge = `##########
 #..O..O.O#
@@ -36,6 +45,7 @@ vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
 v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^`;
 
 Deno.test("day 15", () => {
-	assertEquals(solve(testInputSmall), 2028);
-	assertEquals(solve(testInputLarge), 10092);
+	assertEquals(solve(testInputSmall), 618);
+	assertEquals(solve(testMovingDownAroundWall), 2130);
+	assertEquals(solve(testInputLarge), 9021);
 });

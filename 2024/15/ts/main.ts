@@ -1,8 +1,4 @@
-import {
-	dirname,
-	fromFileUrl,
-	join,
-} from "https://deno.land/std@0.167.0/path/posix.ts";
+import { dirname, fromFileUrl, join } from "https://deno.land/std@0.167.0/path/posix.ts";
 
 import { solve } from "./solver.ts";
 

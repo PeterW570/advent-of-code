@@ -1,8 +1,24 @@
-enum MapObject {
+enum InputMapObject {
 	Wall = "#",
 	Box = "O",
 	Empty = ".",
 	Robot = "@",
+}
+
+enum MapObject {
+	Wall = "#",
+	BoxLeft = "[",
+	BoxRight = "]",
+	Empty = ".",
+	Robot = "@",
+}
+
+function inputObjectToMapObject(inputObject: InputMapObject): [MapObject, MapObject] {
+	if (inputObject === InputMapObject.Wall) return [MapObject.Wall, MapObject.Wall];
+	else if (inputObject === InputMapObject.Box) return [MapObject.BoxLeft, MapObject.BoxRight];
+	else if (inputObject === InputMapObject.Empty) return [MapObject.Empty, MapObject.Empty];
+	else if (inputObject === InputMapObject.Robot) return [MapObject.Robot, MapObject.Empty];
+	else throw new Error("Unexpected input object");
 }
 
 type Pos = {
@@ -35,32 +51,75 @@ interface GameState {
 function moveRobot(state: GameState, instruction: Instruction) {
 	const dir = DirForInstruction[instruction];
 	const toMove = [state.currentRobotLocation];
-	let currentRow = state.currentRobotLocation.row + dir[0];
-	let currentCol = state.currentRobotLocation.col + dir[1];
-	while (true) {
-		const currentObject = state.map[currentRow][currentCol];
-		if (currentObject === MapObject.Wall) {
-			break;
-		} else if (currentObject === MapObject.Box) {
-			toMove.push({
-				row: currentRow,
-				col: currentCol,
-			});
-			currentRow += dir[0];
-			currentCol += dir[1];
-		} else if (currentObject === MapObject.Empty) {
-			for (const pos of toMove.reverse()) {
-				state.map[pos.row + dir[0]][pos.col + dir[1]] = state.map[pos.row][pos.col];
+	let positionsToCheck = new Set<string>();
+	positionsToCheck.add(
+		`${state.currentRobotLocation.row + dir[0]},${state.currentRobotLocation.col + dir[1]}`
+	);
+	loop: while (true) {
+		const nextPositionsToCheck = new Set<string>();
+		let allEmpty = true;
+		for (const currentPos of positionsToCheck) {
+			const [currentRowStr, currentColStr] = currentPos.split(",");
+			const currentRow = parseInt(currentRowStr);
+			const currentCol = parseInt(currentColStr);
+			const currentObject = state.map[currentRow][currentCol];
+
+			if (currentObject === MapObject.Wall) {
+				break loop;
+			} else if (currentObject === MapObject.BoxLeft) {
+				toMove.unshift({
+					row: currentRow,
+					col: currentCol,
+				});
+				nextPositionsToCheck.add(`${currentRow + dir[0]},${currentCol + dir[1]}`);
+				if (dir[1] === 0) {
+					toMove.unshift({
+						row: currentRow,
+						col: currentCol + 1,
+					});
+					nextPositionsToCheck.add(`${currentRow + dir[0]},${currentCol + 1}`);
+				}
+				allEmpty = false;
+			} else if (currentObject === MapObject.BoxRight) {
+				toMove.unshift({
+					row: currentRow,
+					col: currentCol,
+				});
+				nextPositionsToCheck.add(`${currentRow + dir[0]},${currentCol + dir[1]}`);
+				if (dir[1] === 0) {
+					toMove.unshift({
+						row: currentRow,
+						col: currentCol - 1,
+					});
+					nextPositionsToCheck.add(`${currentRow + dir[0]},${currentCol - 1}`);
+				}
+				allEmpty = false;
+			} else if (currentObject === MapObject.Empty) {
+				nextPositionsToCheck.add(`${currentRow},${currentCol}`);
+			} else {
+				throw new Error("Unexpected object at location: " + currentObject);
 			}
-			state.map[state.currentRobotLocation.row][state.currentRobotLocation.col] =
-				MapObject.Empty;
+		}
+
+		if (allEmpty) {
+			const moved = new Set<string>();
+			for (const pos of toMove) {
+				const strPos = `${pos.row},${pos.col}`;
+				if (moved.has(strPos)) continue;
+
+				const movingObject = state.map[pos.row][pos.col];
+				state.map[pos.row + dir[0]][pos.col + dir[1]] = movingObject;
+				state.map[pos.row][pos.col] = MapObject.Empty;
+
+				moved.add(strPos);
+			}
 			state.currentRobotLocation = {
 				row: state.currentRobotLocation.row + dir[0],
 				col: state.currentRobotLocation.col + dir[1],
 			};
 			break;
 		} else {
-			throw new Error("Unexpected object at location");
+			positionsToCheck = nextPositionsToCheck;
 		}
 	}
 }
@@ -85,13 +144,17 @@ export function solve(input: string): number {
 			rows++;
 			map[currentRow] = {};
 			for (let col = 0; col < line.length; col++) {
-				const x = line[col] as MapObject;
-				map[currentRow][col] = x;
+				const x = line[col] as InputMapObject;
+				const newMapObjects = inputObjectToMapObject(x);
+				for (let i = 0; i < newMapObjects.length; i++) {
+					const obj = newMapObjects[i];
+					map[currentRow][col * 2 + i] = obj;
+				}
 
-				if (x === MapObject.Robot) {
+				if (x === InputMapObject.Robot) {
 					robotPosition = {
 						row: currentRow,
-						col,
+						col: col * 2,
 					};
 				}
 			}
@@ -106,9 +169,11 @@ export function solve(input: string): number {
 	const gameState: GameState = {
 		map,
 		rows,
-		cols,
+		cols: cols * 2,
 		currentRobotLocation: robotPosition,
 	};
+
+	// _debugGameState(gameState);
 
 	for (const instruction of instructions) {
 		moveRobot(gameState, instruction);
@@ -118,9 +183,9 @@ export function solve(input: string): number {
 	let gpsSum = 0;
 
 	for (let row = 0; row < rows; row++) {
-		for (let col = 0; col < cols; col++) {
+		for (let col = 0; col < cols * 2; col++) {
 			const obj = map[row][col];
-			if (obj === MapObject.Box) {
+			if (obj === MapObject.BoxLeft) {
 				gpsSum += row * 100 + col;
 			}
 		}
@@ -137,5 +202,5 @@ function _debugGameState({ rows, cols, map }: GameState) {
 		}
 		console.log(rowStr);
 	}
-	console.log();
+	console.log("");
 }
