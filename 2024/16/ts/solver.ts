@@ -10,7 +10,7 @@ type Pos = {
 	col: number;
 };
 
-const posToString = (pos: Pos) => `${pos.row},${pos.col}`;
+const posDirToString = (pos: Pos, dir: Direction) => `${pos.row},${pos.col},${dir}`;
 
 enum Direction {
 	Up = "^",
@@ -29,7 +29,7 @@ const offsetsForDir = {
 } as const;
 
 interface QueueItem {
-	posStr: string;
+	posDirStr: string;
 	pos: Pos;
 	dir: Direction;
 }
@@ -44,60 +44,55 @@ interface PuzzleState {
 }
 
 // https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#
-function dijkstra({ map, rows, cols, source, target }: PuzzleState) {
-	const distances: Record<string, number> = {};
-	const previous: Record<string, string> = {};
+function dijkstra({ map, source }: PuzzleState) {
+	const distances: Partial<Record<string, number>> = {};
+	const previous: Partial<Record<string, Set<string>>> = {};
 	const visited = new Set<string>();
 	const queue: QueueItem[] = [
 		{
 			pos: source,
-			posStr: posToString(source),
+			posDirStr: posDirToString(source, Direction.Right),
 			dir: Direction.Right,
+		},
+		{
+			pos: source,
+			posDirStr: posDirToString(source, Direction.Up),
+			dir: Direction.Up,
 		},
 	];
 
-	for (let row = 0; row < rows; row++) {
-		for (let col = 0; col < cols; col++) {
-			const obj = map[row][col];
-			if (obj === MapObject.Wall) {
-				continue;
-			}
+	distances[posDirToString(source, Direction.Right)] = 0;
+	distances[posDirToString(source, Direction.Up)] = 1000;
 
-			const posStr = posToString({ row, col });
-			distances[posStr] = Infinity;
-		}
-	}
-	distances[posToString(source)] = 0;
-
-	let iterations = 0;
-	while (queue.length && iterations < 10_000) {
-		iterations++;
+	while (queue.length) {
 		queue.sort((a, b) =>
-			distances[a.posStr] < distances[b.posStr]
+			(distances[a.posDirStr] ?? Infinity) < (distances[b.posDirStr] ?? Infinity)
 				? -1
-				: distances[a.posStr] > distances[b.posStr]
+				: (distances[a.posDirStr] ?? Infinity) > (distances[b.posDirStr] ?? Infinity)
 				? 1
 				: 0
 		);
 		const current = queue.shift()!;
 
-		if (current.posStr === posToString(target)) break;
-		else if (visited.has(current.posStr)) continue;
+		if (visited.has(current.posDirStr)) continue;
+
+		const [currentRowDiff, currentColDiff] = offsetsForDir[current.dir];
+		const nextPos: Pos = {
+			row: current.pos.row + currentRowDiff,
+			col: current.pos.col + currentColDiff,
+		};
+		if (map[nextPos.row][nextPos.col] === MapObject.Wall) {
+			continue;
+		}
 
 		for (const dir of dirs) {
 			const [rowDiff, colDiff] = offsetsForDir[dir];
-			const nextPos: Pos = {
-				row: current.pos.row + rowDiff,
-				col: current.pos.col + colDiff,
-			};
-			const nextPosStr = posToString(nextPos);
-			if (visited.has(nextPosStr)) {
-				continue;
-			} else if (map[nextPos.row][nextPos.col] === MapObject.Wall) {
+			const nextPosDirStr = posDirToString(nextPos, dir);
+			if (visited.has(nextPosDirStr)) {
 				continue;
 			}
 
-			let cost = distances[current.posStr];
+			let cost = distances[current.posDirStr]!;
 			const [currentRowDiff, currentColDiff] = offsetsForDir[current.dir];
 
 			if (rowDiff === currentRowDiff && colDiff === currentColDiff) {
@@ -113,17 +108,21 @@ function dijkstra({ map, rows, cols, source, target }: PuzzleState) {
 
 			queue.push({
 				pos: nextPos,
-				posStr: nextPosStr,
+				posDirStr: nextPosDirStr,
 				dir,
 			});
 
-			if (cost < distances[nextPosStr]) {
-				distances[nextPosStr] = cost;
-				previous[nextPosStr] = current.posStr;
+			if (!distances[nextPosDirStr] || cost < distances[nextPosDirStr]) {
+				distances[nextPosDirStr] = cost;
+				const prevSet = new Set<string>();
+				prevSet.add(current.posDirStr);
+				previous[nextPosDirStr] = prevSet;
+			} else if (cost === distances[nextPosDirStr]) {
+				previous[nextPosDirStr]!.add(current.posDirStr);
 			}
 		}
 
-		visited.add(current.posStr);
+		visited.add(current.posDirStr);
 	}
 
 	return { distances, previous };
@@ -163,7 +162,47 @@ export function solve(input: string): number {
 		cols,
 	};
 
-	const { distances } = dijkstra(intialState);
+	const { distances, previous } = dijkstra(intialState);
 
-	return distances[posToString(endPosition)];
+	const visitedPosDirs = new Set<string>();
+	const partOfBestPaths = new Set<string>();
+	let min = Infinity;
+	for (const dir of dirs) {
+		const targetPosDir = posDirToString(endPosition, dir);
+		if (distances[targetPosDir] && distances[targetPosDir] < min) {
+			min = distances[targetPosDir];
+		}
+	}
+	const queue = dirs
+		.map((dir) => posDirToString(endPosition, dir))
+		.filter((posDirStr) => distances[posDirStr] && distances[posDirStr] === min);
+
+	while (queue.length) {
+		const first = queue.shift()!;
+		if (visitedPosDirs.has(first)) continue;
+		else if (!previous[first]) continue;
+
+		queue.push(...previous[first]);
+		visitedPosDirs.add(first);
+		partOfBestPaths.add(first.slice(0, -2));
+	}
+
+	// _debugBestPath(intialState, partOfBestPaths);
+
+	return partOfBestPaths.size + 1;
+}
+
+function _debugBestPath({ rows, cols, map }: PuzzleState, partOfBestPaths: Set<string>) {
+	for (let row = 0; row < rows; row++) {
+		let rowStr = "";
+		for (let col = 0; col < cols; col++) {
+			if (partOfBestPaths.has(`${row},${col}`)) {
+				rowStr += "O";
+			} else {
+				rowStr += map[row][col];
+			}
+		}
+		console.log(rowStr);
+	}
+	console.log("");
 }
