@@ -61,24 +61,14 @@ interface Instruction {
 	operand: number;
 }
 
-export function solve(input: string): string {
-	const lines = input.split("\n");
+interface Registers {
+	A: bigint;
+	B: bigint;
+	C: bigint;
+}
 
-	const registers = {
-		A: parseInt(lines[0].slice("Register A: ".length)),
-		B: parseInt(lines[1].slice("Register B: ".length)),
-		C: parseInt(lines[2].slice("Register C: ".length)),
-	};
-	const program = lines[4].slice("Program: ".length).split(",").map(Number);
-
-	const instructions: Instruction[] = [];
-	for (let i = 0; i < program.length; i += 2) {
-		const opcode = program[i] as Opcode;
-		const operand = program[i + 1];
-		instructions.push({ opcode, operand });
-	}
-
-	const out: number[] = [];
+function runProgram(instructions: Instruction[], registers: Registers) {
+	let out = "";
 
 	function getComboOperandValue(operand: ComboOperand) {
 		switch (operand) {
@@ -86,7 +76,7 @@ export function solve(input: string): string {
 			case ComboOperand.LiteralOne:
 			case ComboOperand.LiteralTwo:
 			case ComboOperand.LiteralThree:
-				return operand;
+				return BigInt(operand);
 			case ComboOperand.RegisterA:
 				return registers.A;
 			case ComboOperand.RegisterB:
@@ -102,31 +92,63 @@ export function solve(input: string): string {
 	while (instructionPointer < instructions.length) {
 		const { opcode, operand } = instructions[instructionPointer];
 		if (opcode === Opcode.Adv) {
-			registers.A = Math.floor(registers.A / Math.pow(2, getComboOperandValue(operand)));
+			registers.A = registers.A / 2n ** getComboOperandValue(operand);
 			instructionPointer++;
 		} else if (opcode === Opcode.Bxl) {
-			registers.B = registers.B ^ operand;
+			registers.B = registers.B ^ BigInt(operand);
 			instructionPointer++;
 		} else if (opcode === Opcode.Bst) {
-			registers.B = getComboOperandValue(operand) % 8;
+			registers.B = getComboOperandValue(operand) % 8n;
 			instructionPointer++;
 		} else if (opcode === Opcode.Jnz) {
-			if (registers.A === 0) instructionPointer++;
+			if (registers.A === 0n) instructionPointer++;
 			else instructionPointer = operand;
 		} else if (opcode === Opcode.Bxc) {
 			registers.B = registers.B ^ registers.C;
 			instructionPointer++;
 		} else if (opcode === Opcode.Out) {
-			out.push(getComboOperandValue(operand) % 8);
+			out += `,${getComboOperandValue(operand) % 8n}`;
 			instructionPointer++;
 		} else if (opcode === Opcode.Bdv) {
-			registers.B = Math.floor(registers.A / Math.pow(2, getComboOperandValue(operand)));
+			registers.B = registers.A / 2n ** getComboOperandValue(operand);
 			instructionPointer++;
 		} else if (opcode === Opcode.Cdv) {
-			registers.C = Math.floor(registers.A / Math.pow(2, getComboOperandValue(operand)));
+			registers.C = registers.A / 2n ** getComboOperandValue(operand);
 			instructionPointer++;
 		}
 	}
 
-	return out.join(",");
+	return out.slice(1); // get rid of first comma
+}
+
+export function solve(input: string): bigint {
+	const lines = input.split("\n");
+
+	const registers: Registers = {
+		A: BigInt(parseInt(lines[0].slice("Register A: ".length))),
+		B: BigInt(parseInt(lines[1].slice("Register B: ".length))),
+		C: BigInt(parseInt(lines[2].slice("Register C: ".length))),
+	};
+	const programOutput = lines[4].slice("Program: ".length);
+	const program = programOutput.split(",").map(Number);
+
+	const instructions: Instruction[] = [];
+	for (let i = 0; i < program.length; i += 2) {
+		const opcode = program[i] as Opcode;
+		const operand = program[i + 1];
+		instructions.push({ opcode, operand });
+	}
+
+	let initialA = 0n;
+	for (let pos = program.length - 1; pos >= 0; pos--) {
+		initialA *= 8n;
+
+		while (
+			runProgram(instructions, { ...registers, A: initialA }) !== program.slice(pos).join(",")
+		) {
+			initialA++;
+		}
+	}
+
+	return initialA;
 }
