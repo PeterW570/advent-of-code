@@ -31,7 +31,7 @@ const testCases = [
 2,0`,
 		memorySize: 6,
 		bytes: 12,
-		expected: 22,
+		expected: "6,1",
 	},
 ];
 

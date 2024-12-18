@@ -129,7 +129,7 @@ function aStar({ start, end, size, corruptedMap }: PuzzleState) {
 	throw new Error("Couldn't find path from start to end");
 }
 
-export function solve(input: string, memorySize = 70, bytes = 1024): number {
+export function solve(input: string, memorySize = 70, bytes = 1024): string {
 	const lines = input.split("\n");
 
 	const puzzleState: PuzzleState = {
@@ -149,10 +149,23 @@ export function solve(input: string, memorySize = 70, bytes = 1024): number {
 		puzzleState.corruptedMap[row][col] = true;
 	}
 
-	// _printMap(puzzleState);
+	for (let i = bytes; i < lines.length; i++) {
+		const [colStr, rowStr] = lines[i].split(",");
+		const row = parseInt(rowStr);
+		const col = parseInt(colStr);
+		if (!puzzleState.corruptedMap[row]) {
+			puzzleState.corruptedMap[row] = {};
+		}
+		puzzleState.corruptedMap[row][col] = true;
 
-	const bestPathToEnd = aStar(puzzleState);
-	return bestPathToEnd.length - 1; // don't include start position
+		try {
+			aStar(puzzleState);
+		} catch {
+			return lines[i];
+		}
+	}
+
+	throw new Error("Couldn't find solution");
 }
 
 function _printMap({ size, corruptedMap }: PuzzleState) {
