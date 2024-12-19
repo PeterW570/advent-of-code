@@ -1,11 +1,16 @@
-function canMakeDesign(design: string, availablePatterns: string[]) {
+const cache = new Map<string, number>();
+
+function waysToMake(design: string, availablePatterns: string[]): number {
+	let count = 0;
+	if (cache.has(design)) return cache.get(design)!;
 	for (const pattern of availablePatterns) {
-		if (design === pattern) return true;
+		if (design === pattern) count++;
 		if (!design.startsWith(pattern)) continue;
 
-		if (canMakeDesign(design.slice(pattern.length), availablePatterns)) return true;
+		count += waysToMake(design.slice(pattern.length), availablePatterns);
 	}
-	return false;
+	cache.set(design, count);
+	return count;
 }
 
 export function solve(input: string): number {
@@ -13,13 +18,11 @@ export function solve(input: string): number {
 
 	const availablePatterns = lines[0].split(", ");
 
-	let designable = 0;
+	let count = 0;
 
 	for (const design of lines.slice(2)) {
-		if (canMakeDesign(design, availablePatterns)) {
-			designable++;
-		}
+		count += waysToMake(design, availablePatterns);
 	}
 
-	return designable;
+	return count;
 }

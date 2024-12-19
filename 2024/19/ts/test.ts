@@ -14,7 +14,7 @@ ubwu
 bwurrg
 brgr
 bbrgwb`,
-		expected: 6,
+		expected: 16,
 	},
 ];
 
