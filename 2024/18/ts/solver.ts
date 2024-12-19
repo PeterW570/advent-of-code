@@ -64,12 +64,6 @@ class Queue {
 	}
 }
 
-// function reconstruct_path(cameFrom, current)
-//     total_path := {current}
-//     while current in cameFrom.Keys:
-//         current := cameFrom[current]
-//         total_path.prepend(current)
-//     return total_path
 function reconstructPath(from: Map<string, string>, current: Pos) {
 	let currentStr = posToStr(current);
 	const path = [currentStr];
@@ -80,12 +74,15 @@ function reconstructPath(from: Map<string, string>, current: Pos) {
 	return path;
 }
 
-function aStar({ start, end, size, corruptedMap }: PuzzleState) {
+// https://en.wikipedia.org/wiki/A*_search_algorithm
+function aStar({ start, end, size, corruptedMap }: PuzzleState, bestPathPosSet?: Set<string>) {
 	// For node n, gScore[n] is the currently known cost of the cheapest path from start to n.
 	const gScore = new Map<string, number>();
 	gScore.set(posToStr(start), 0);
 
-	const h = (pos: Pos) => end.row - pos.row + end.col - pos.col;
+	const h = (pos: Pos) =>
+		(end.row - pos.row + end.col - pos.col) *
+		(bestPathPosSet && !bestPathPosSet.has(posToStr(pos)) ? 100 : 1);
 
 	// For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
 	// how cheap a path could be from start to finish if it goes through n.
@@ -149,6 +146,9 @@ export function solve(input: string, memorySize = 70, bytes = 1024): string {
 		puzzleState.corruptedMap[row][col] = true;
 	}
 
+	const bestPathPart1 = aStar(puzzleState);
+	const bestPathPosSet = new Set(bestPathPart1);
+
 	for (let i = bytes; i < lines.length; i++) {
 		const [colStr, rowStr] = lines[i].split(",");
 		const row = parseInt(rowStr);
@@ -158,10 +158,12 @@ export function solve(input: string, memorySize = 70, bytes = 1024): string {
 		}
 		puzzleState.corruptedMap[row][col] = true;
 
-		try {
-			aStar(puzzleState);
-		} catch {
-			return lines[i];
+		if (bestPathPosSet.has(`${row},${col}`)) {
+			try {
+				aStar(puzzleState);
+			} catch {
+				return lines[i];
+			}
 		}
 	}
 
