@@ -10,13 +10,6 @@ type Pos = {
 	col: number;
 };
 const posToStr = (pos: Pos) => `${pos.row},${pos.col}`;
-const strToPos = (str: string) => {
-	const [rowStr, colStr] = str.split(",");
-	return {
-		row: parseInt(rowStr),
-		col: parseInt(colStr),
-	};
-};
 
 enum Direction {
 	Up = "^",
@@ -46,9 +39,11 @@ interface PuzzleState {
 	cols: number;
 }
 
+type DistanceMap = Partial<Record<string, number>>;
+
 // https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#
 function dijkstra({ map }: PuzzleState, source: Pos) {
-	const distances: Partial<Record<string, number>> = {};
+	const distances: DistanceMap = {};
 	const previous: Partial<Record<string, string>> = {};
 	const visited = new Set<string>();
 	const queue: QueueItem[] = [
@@ -106,6 +101,8 @@ function dijkstra({ map }: PuzzleState, source: Pos) {
 	return { distances, previous };
 }
 
+const MAX_SHORTCUT_LENGTH = 20;
+
 export function solve(input: string, targetSaving = 100): number {
 	const lines = input.split("\n");
 
@@ -136,7 +133,6 @@ export function solve(input: string, targetSaving = 100): number {
 		{ map, rows, cols },
 		startPosition
 	);
-	const { distances: distancesFromEnd } = dijkstra({ map, rows, cols }, endPosition);
 
 	const bestPath: string[] = [];
 	let posStr = posToStr(endPosition);
@@ -144,40 +140,32 @@ export function solve(input: string, targetSaving = 100): number {
 		bestPath.unshift(posStr);
 		posStr = previous[posStr]!;
 	}
-	const bestPathLength = bestPath.length;
 
 	let goodCheatCount = 0;
-
-	for (const currentPosStr of bestPath.slice(0, -2)) {
-		const currentPos = strToPos(currentPosStr);
-		for (const dir of dirs) {
-			const [rowDiff, colDiff] = offsetsForDir[dir];
-			const nextPos: Pos = {
-				row: currentPos.row + rowDiff,
-				col: currentPos.col + colDiff,
-			};
-
-			// we now only care about walls
-			if (map[nextPos.row][nextPos.col] !== MapObject.Wall) {
-				continue;
-			}
-
-			const posAfterNext: Pos = {
-				row: currentPos.row + 2 * rowDiff,
-				col: currentPos.col + 2 * colDiff,
-			};
-			const posAfterNextStr = posToStr(posAfterNext);
-
-			if (distancesFromStart[currentPosStr] === undefined) {
-				continue;
-			} else if (distancesFromEnd[posAfterNextStr] === undefined) {
-				continue;
-			}
-
-			const potentialPathLength =
-				distancesFromStart[currentPosStr] + distancesFromEnd[posAfterNextStr] + 2;
-			if (potentialPathLength < bestPathLength - targetSaving) {
-				goodCheatCount++;
+	for (let row = 0; row < rows; row++) {
+		for (let col = 0; col < cols; col++) {
+			if (map[row][col] === "#") continue;
+			for (let r = 2; r <= MAX_SHORTCUT_LENGTH; r++) {
+				for (let dy = 0; dy < r + 1; dy++) {
+					const dx = r - dy;
+					const dirset = new Set([
+						`${row + dy},${col + dx}`,
+						`${row + dy},${col - dx}`,
+						`${row - dy},${col + dx}`,
+						`${row - dy},${col - dx}`,
+					]);
+					for (const dir of dirset) {
+						const [ny, nx] = dir.split(",").map(Number);
+						if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+						if (map[ny][nx] === "#") continue;
+						const d1 = distancesFromStart[`${row},${col}`];
+						const d2 = distancesFromStart[`${ny},${nx}`];
+						if (d1 === undefined || d2 === undefined) continue;
+						if (d1 - d2 >= targetSaving + r) {
+							goodCheatCount++;
+						}
+					}
+				}
 			}
 		}
 	}

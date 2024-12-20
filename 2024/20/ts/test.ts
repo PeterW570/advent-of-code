@@ -19,8 +19,8 @@ const testCases = [
 #.#.#.#.#.#.###
 #...#...#...###
 ###############`,
-		targetSaving: 10,
-		expected: 10,
+		targetSaving: 72,
+		expected: 3 + 4 + 22,
 	},
 ];
 
