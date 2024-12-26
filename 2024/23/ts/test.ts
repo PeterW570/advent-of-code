@@ -36,7 +36,7 @@ co-tc
 wh-qp
 tb-vc
 td-yn`,
-		expected: 7,
+		expected: "co,de,ka,ta",
 	},
 ];
 
