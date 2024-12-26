@@ -39,32 +39,46 @@ function generateMovement(
 	return shouldReverseMovements ? movements.reverse().join("") : movements.join("");
 }
 
-export function generateInstructions(code: string, keypad: string[][]): string {
-	let instructions = "";
-	let currentKey = "A";
-	for (const targetKey of code) {
-		if (targetKey === currentKey) {
-			instructions += "A";
-			continue;
+const ROBOT_COUNT = 26;
+
+const memoCache = new Map<string, Map<number, number>>();
+
+const processSequenceRecursive = (sequence: string, robotNumber: number): Map<number, number> => {
+	if (robotNumber > ROBOT_COUNT) return new Map([[sequence.length, 1]]);
+
+	const cacheKey = `${sequence}-${robotNumber}`;
+	if (memoCache.has(cacheKey)) return memoCache.get(cacheKey)!;
+
+	const keypad = robotNumber === 1 ? numericKeypad : directionalKeypad;
+
+	const nextLengthCounts = sequence.split("").reduce((acc, item, i) => {
+		const nextCounts = processSequenceRecursive(
+			generateMovement(
+				[
+					keypad
+						.find((row) => row.includes(i === 0 ? "A" : sequence[i - 1]))!
+						.indexOf(i === 0 ? "A" : sequence[i - 1]),
+					keypad.findIndex((row) => row.includes(i === 0 ? "A" : sequence[i - 1])),
+				],
+				[
+					keypad.find((row) => row.includes(item))!.indexOf(item),
+					keypad.findIndex((row) => row.includes(item)),
+				],
+				keypad === numericKeypad
+			) + "A",
+			robotNumber + 1
+		);
+
+		for (const [length, count] of nextCounts) {
+			acc.set(length, (acc.get(length) || 0) + count);
 		}
 
-		instructions += generateMovement(
-			[
-				keypad.find((row) => row.includes(currentKey))!.indexOf(currentKey),
-				keypad.findIndex((row) => row.includes(currentKey)),
-			],
-			[
-				keypad.find((row) => row.includes(targetKey))!.indexOf(targetKey),
-				keypad.findIndex((row) => row.includes(targetKey)),
-			],
-			keypad === numericKeypad
-		);
-		instructions += "A";
-		currentKey = targetKey;
-	}
+		return acc;
+	}, new Map<number, number>());
 
-	return instructions;
-}
+	memoCache.set(cacheKey, nextLengthCounts);
+	return nextLengthCounts;
+};
 
 export function solve(input: string): number {
 	const lines = input.split("\n");
@@ -72,11 +86,12 @@ export function solve(input: string): number {
 	let complexitySum = 0;
 
 	for (const line of lines) {
-		const robotOneInstructions = generateInstructions(line, numericKeypad);
-		const robotTwoInstructions = generateInstructions(robotOneInstructions, directionalKeypad);
-		const personInstructions = generateInstructions(robotTwoInstructions, directionalKeypad);
+		const lengthCounts = processSequenceRecursive(line, 1);
 
-		complexitySum += parseInt(line) * personInstructions.length;
+		let total = 0;
+		lengthCounts.forEach((count, length) => (total += parseInt(line) * length * count));
+
+		complexitySum += total;
 	}
 
 	return complexitySum;
