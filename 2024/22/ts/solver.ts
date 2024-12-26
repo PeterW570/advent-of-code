@@ -16,18 +16,51 @@ function evolveNumber(secretNum: number) {
 	return prune(mix(secretNum * 2048, secretNum));
 }
 
+const calculateChanges = (nums: number[]) => {
+	const changes = [];
+	for (let i = 1; i < nums.length; i++) {
+		changes.push(nums[i] - nums[i - 1]);
+	}
+	return changes;
+};
+
 export function solve(input: string): number {
 	const lines = input.split("\n");
 
-	let secretSum = 0;
+	let best = 0;
+
+	const priceBySequence: Map<string, number> = new Map();
 
 	for (const line of lines) {
 		let secret = parseInt(line);
+		const history = [secret];
+		const seenSequences = new Set<string>();
 		for (let i = 0; i < 2000; i++) {
 			secret = evolveNumber(secret);
+			// price is the ones-digit of the secret number
+			const price = secret % 10;
+			history.push(price);
+
+			if (history.length >= 5) {
+				const changes = calculateChanges(history.slice(-5));
+				const sequence = changes.join(",");
+
+				// only take the price of the first occurrence of a sequence
+				if (seenSequences.has(sequence)) {
+					continue;
+				}
+				seenSequences.add(sequence);
+
+				const existing = priceBySequence.get(sequence) ?? 0;
+				const newSum = existing + price;
+				priceBySequence.set(sequence, newSum);
+
+				if (newSum > best) {
+					best = newSum;
+				}
+			}
 		}
-		secretSum += secret;
 	}
 
-	return secretSum;
+	return best;
 }

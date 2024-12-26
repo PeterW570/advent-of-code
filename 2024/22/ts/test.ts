@@ -5,10 +5,10 @@ import { solve } from "./solver.ts";
 const testCases = [
 	{
 		input: `1
-10
-100
+2
+3
 2024`,
-		expected: 37327623,
+		expected: 23,
 	},
 ];
 
