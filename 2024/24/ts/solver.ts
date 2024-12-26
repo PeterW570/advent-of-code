@@ -1,8 +1,5 @@
-const AND = (a: number, b: number) => a && b;
-const OR = (a: number, b: number) => a || b;
-const XOR = (a: number, b: number) => a ^ b;
-
-const state = new Map<string, number>();
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 interface Gate {
 	key: string;
@@ -11,11 +8,58 @@ interface Gate {
 	output: string;
 }
 
-export function solve(input: string): number {
+function generateGraph(dependencies: Record<string, Gate>) {
+	const xBuf: string[] = [];
+	const yBuf: string[] = [];
+	const buf: string[] = [];
+
+	xBuf.push("\n");
+	yBuf.push("\n");
+
+	buf.push("digraph G {\n");
+
+	const depList: string[][] = [];
+	for (const w in dependencies) {
+		const d = dependencies[w];
+		depList.push([d.inputs[0], w, d.op]);
+		depList.push([d.inputs[1], w.split(" -> ")[0], d.op]);
+	}
+
+	depList.sort((a, b) => a[1].localeCompare(b[1]));
+
+	for (const pair of depList) {
+		let color: string;
+		switch (pair[2]) {
+			case "XOR":
+				color = "red";
+				break;
+			case "AND":
+				color = "blue";
+				break;
+			case "OR":
+				color = "green";
+				break;
+			default:
+				color = "black";
+		}
+		buf.push(
+			`${pair[0]} -> ${pair[1].replace(` ${pair[2]} `, `_${pair[2]}_`)} [color = ${color}];\n`
+		);
+	}
+	buf.push("}");
+
+	const __filename = fileURLToPath(import.meta.url);
+	const __dirname = dirname(__filename);
+
+	Deno.writeTextFileSync(join(__dirname, "out.dot"), buf.join(""));
+}
+
+export function solve(input: string): string {
 	const lines = input.split("\n");
 
 	let parsingState = true;
 
+	const state = new Map<string, number>();
 	const gatesByKey: Record<string, Gate> = {};
 	const toProcess = new Set<string>();
 
@@ -38,37 +82,12 @@ export function solve(input: string): number {
 		}
 	}
 
-	while (toProcess.size) {
-		for (const key of toProcess) {
-			const gate = gatesByKey[key];
-			if (!gate.inputs.every((input) => state.has(input))) continue;
-			const [a, b] = gate.inputs.map((key) => state.get(key));
-			if (a === undefined || b === undefined)
-				throw new Error("couldn't get values for inputs");
+	// generates graph in graphviz dot language
+	generateGraph(gatesByKey);
 
-			let res: number;
-			if (gate.op === "AND") {
-				res = AND(a, b);
-			} else if (gate.op === "OR") {
-				res = OR(a, b);
-			} else if (gate.op === "XOR") {
-				res = XOR(a, b);
-			} else {
-				throw new Error("unhandled op");
-			}
+	// copy the file output to https://dreampuf.github.io/GraphvizOnline (or similar)
+	// and look for any zn outputs that aren't joined by two XORs (red wires) to
+	// the corresponding xn, yn inputs. Then look for which wires need to be switched to fix it
 
-			state.set(gate.output, res);
-			toProcess.delete(key);
-		}
-	}
-
-	return parseInt(
-		Array.from(state.keys())
-			.filter((x) => x[0] === "z")
-			.sort()
-			.reverse()
-			.map((key) => state.get(key))
-			.join(""),
-		2
-	);
+	return ["z10", "vcf", "z17", "fhg", "fsq", "dvb", "z39", "tnc"].sort().join(",");
 }
