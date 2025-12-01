@@ -8,14 +8,24 @@ public func solve(input: String) -> String {
     var solution = 0
     for line in lines {
         // print(line)
-        guard let distance = Int(line.dropFirst()) else { continue }
+        guard var distance = Int(line.dropFirst()) else { continue }
 
+        let fullSpins = distance / STEPS
+        solution += fullSpins
+        distance %= STEPS
+
+        var next = current
         if line.first == "L" {
-            current -= distance
+            next -= distance
         } else if line.first == "R" {
-            current += distance
+            next += distance
         }
-        current = (current + STEPS) % STEPS
+
+        if current != 0 && (next < 0 || next > STEPS) {
+            solution += 1
+        }
+
+        current = (next + STEPS) % STEPS
         if current == 0 {
             solution += 1
         }
