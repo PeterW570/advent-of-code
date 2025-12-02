@@ -1,4 +1,5 @@
 .DS_Store
 input.txt
+input.example.txt
 out.dot
 .build

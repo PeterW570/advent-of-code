@@ -16,15 +16,22 @@ public func solve(input: String) -> String {
 
         for number in start...end {
             let numStr = String(number)
-            guard numStr.count % 2 == 0 else {
-                continue
-            }
 
-            let firstHalf = numStr.prefix(numStr.count / 2)
-            let secondHalf = numStr.suffix(numStr.count / 2)
+            var repeats = 2
+            while repeats <= numStr.count {
+                guard numStr.count % repeats == 0 else {
+                    repeats += 1
+                    continue
+                }
 
-            if firstHalf == secondHalf {
-                solution += number
+                let segment = String.init(numStr.prefix(numStr.count / repeats))
+
+                if numStr == String(repeating: segment, count: repeats) {
+                    solution += number
+                    break
+                }
+
+                repeats += 1
             }
         }
     }
