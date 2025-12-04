@@ -5,26 +5,31 @@ public func solve(input: String) -> String {
     var solution = 0
 
     for line in lines {
-        var tens = -1
-        var ones = -1
+        let lineLen = line.count
+        var nums = Array(repeating: -1, count: 12)
 
-        for char in line.dropLast() {
+        for (i, char) in line.enumerated() {
+            let remaining = lineLen - i - 1
             let num = Int(String(char))!
-            if num > tens {
-                tens = num
-                ones = -1
-            } else if num > ones {
-                ones = num
+
+            for (j, storedNum) in nums.suffix(remaining + 1).enumerated() {
+                let offset = max(nums.count - (remaining + 1), 0)
+                if num > storedNum {
+                    nums[j + offset] = num
+                    for k in (j + offset + 1)..<nums.count {
+                        nums[k] = -1
+                    }
+                    break
+                }
             }
         }
 
-        let last = Int(String(line.last!))!
-        if last > ones {
-            ones = last
+        var joltage = 0
+        for (i, num) in nums.reversed().enumerated() {
+            joltage += num * Int(pow(10.0, Double(i)))
         }
-
-        // print(tens, ones)
-        solution += tens * 10 + ones
+        // print(joltage)
+        solution += joltage
     }
 
     return "Solution: \(solution)"
