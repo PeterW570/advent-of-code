@@ -10,31 +10,30 @@ public func solve(input: String) -> String {
             let start = Int(parts[0]),
             let end = Int(parts[1])
         else {
-            fputs("Error: Invalid range format in input\n", stderr)
+            print("Invalid range format: \(range)")
             exit(1)
         }
 
         for number in start...end {
             let numStr = String(number)
 
-            var repeats = 2
-            while repeats <= numStr.count {
-                guard numStr.count % repeats == 0 else {
-                    repeats += 1
-                    continue
-                }
-
-                let segment = String.init(numStr.prefix(numStr.count / repeats))
-
-                if numStr == String(repeating: segment, count: repeats) {
-                    solution += number
-                    break
-                }
-
-                repeats += 1
+            if isRepeatingPattern(numStr) {
+                solution += number
             }
         }
     }
 
     return "Solution: \(solution)"
+}
+
+private func isRepeatingPattern(_ str: String) -> Bool {
+    guard str.count >= 2 else { return false }
+    for divisor in 2...str.count where str.count % divisor == 0 {
+        let segmentLength = str.count / divisor
+        let segment = String(str.prefix(segmentLength))
+        if str == String(repeating: segment, count: divisor) {
+            return true
+        }
+    }
+    return false
 }

@@ -2,30 +2,25 @@ import Foundation
 
 public func solve(input: String) -> String {
     let lines = input.split(whereSeparator: \.isNewline).map(String.init)
-    var current = 50
-    let STEPS = 100
+    let steps = 100
+    let initialPosition = 50
 
+    var current = initialPosition
     var solution = 0
+
     for line in lines {
-        // print(line)
         guard var distance = Int(line.dropFirst()) else { continue }
 
-        let fullSpins = distance / STEPS
-        solution += fullSpins
-        distance %= STEPS
+        solution += distance / steps
+        distance %= steps
 
-        var next = current
-        if line.first == "L" {
-            next -= distance
-        } else if line.first == "R" {
-            next += distance
-        }
+        let next = current + (line.first == "L" ? -distance : distance)
 
-        if current != 0 && (next < 0 || next > STEPS) {
+        if current != 0 && (next < 0 || next > steps) {
             solution += 1
         }
 
-        current = (next + STEPS) % STEPS
+        current = (next + steps) % steps
         if current == 0 {
             solution += 1
         }

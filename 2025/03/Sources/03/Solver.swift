@@ -10,7 +10,7 @@ public func solve(input: String) -> String {
 
         for (i, char) in line.enumerated() {
             let remaining = lineLen - i - 1
-            let num = Int(String(char))!
+            guard let num = Int(String(char)) else { continue }
 
             for (j, storedNum) in nums.suffix(remaining + 1).enumerated() {
                 let offset = max(nums.count - (remaining + 1), 0)
@@ -24,11 +24,9 @@ public func solve(input: String) -> String {
             }
         }
 
-        var joltage = 0
-        for (i, num) in nums.reversed().enumerated() {
-            joltage += num * Int(pow(10.0, Double(i)))
+        let joltage = nums.reversed().enumerated().reduce(0) {
+            $0 + $1.element * Int(pow(10.0, Double($1.offset)))
         }
-        // print(joltage)
         solution += joltage
     }
 
