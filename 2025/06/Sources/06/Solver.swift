@@ -4,74 +4,57 @@ enum Operation {
     case add
     case multiply
 
-    init?(symbol: String) {
+    init?(symbol: Character) {
         switch symbol {
-        case "+":
-            self = .add
-        case "*":
-            self = .multiply
-        default:
-            return nil
+        case "+": self = .add
+        case "*": self = .multiply
+        default: return nil
         }
     }
 }
 
-public func solve(input: String) -> String {
+enum ParseError: Error, CustomStringConvertible {
+    case missingOperationLine
+    case invalidCharacter(Character, column: Int, row: Int)
+    case mismatchedOperations
+
+    var description: String {
+        switch self {
+        case .missingOperationLine:
+            return "Missing operation line"
+        case .invalidCharacter(let ch, let col, let row):
+            return "Invalid character '\(ch)' at column \(col), row \(row)"
+        case .mismatchedOperations:
+            return "Number of value groups does not match operations"
+        }
+    }
+}
+
+public func solve(input: String) throws -> String {
     let lines = input.split(whereSeparator: \.isNewline).map(String.init)
 
-    guard let opLine = lines.last else {
-        return "No operation line found"
-    }
-    let operations =
+    let opLine = lines.last!
+    let valueLines = lines.dropLast()
+
+    let operations: [Operation] =
         opLine
         .trimmingCharacters(in: .whitespaces)
         .split(whereSeparator: \.isWhitespace)
-        .compactMap { Operation(symbol: String($0)) }
-
-    var sums = operations.map { op -> Int in
-        switch op {
-        case .add:
-            return 0
-        case .multiply:
-            return 1
+        .compactMap { substr in
+            guard let ch = substr.first, substr.count == 1 else { return nil }
+            return Operation(symbol: ch)
         }
-    }
+
+    var results = operations.map { $0 == .add ? 0 : 1 }
 
     var currentOpIndex = 0
     var numsForCurrentOp: [Int] = []
+
+    let charLines = valueLines.map { Array($0) }
     let colCount = opLine.count
-    for col in 0..<colCount {
-        var numForCol = 0
-        for line in lines.dropLast() {
-            let index = line.index(line.startIndex, offsetBy: col)
-            let char = line[index]
-            if let digit = char.wholeNumberValue {
-                numForCol *= 10
-                numForCol += digit
-            } else if char == " " {
-                continue
-            } else {
-                fputs("Error: Unexpected character '\(char)' in input\n", stderr)
-                exit(1)
-            }
-        }
-        if numForCol > 0 {
-            numsForCurrentOp.append(numForCol)
-        } else {
-            let currentOp = operations[currentOpIndex]
-            let result: Int
-            switch currentOp {
-            case .add:
-                result = numsForCurrentOp.reduce(0, +)
-            case .multiply:
-                result = numsForCurrentOp.reduce(1, *)
-            }
-            sums[currentOpIndex] = result
-            numsForCurrentOp.removeAll()
-            currentOpIndex += 1
-        }
-    }
-    if !numsForCurrentOp.isEmpty {
+
+    func flushCurrentOp() throws {
+        guard currentOpIndex < operations.count else { throw ParseError.mismatchedOperations }
         let currentOp = operations[currentOpIndex]
         let result: Int
         switch currentOp {
@@ -80,10 +63,37 @@ public func solve(input: String) -> String {
         case .multiply:
             result = numsForCurrentOp.reduce(1, *)
         }
-        sums[currentOpIndex] = result
+        results[currentOpIndex] = result
+        numsForCurrentOp.removeAll()
+        currentOpIndex += 1
     }
 
-    let solution = sums.reduce(0, +)
+    for col in 0..<colCount {
+        var numForCol = 0
+        var hasDigit = false
+        for (rowIndex, row) in charLines.enumerated() {
+            let ch = row[col]
+            if let digit = ch.wholeNumberValue {
+                hasDigit = true
+                numForCol = numForCol * 10 + digit
+            } else if ch.isWhitespace {
+                continue
+            } else {
+                throw ParseError.invalidCharacter(ch, column: col, row: rowIndex)
+            }
+        }
 
+        if hasDigit {
+            numsForCurrentOp.append(numForCol)
+        } else {
+            try flushCurrentOp()
+        }
+    }
+
+    if !numsForCurrentOp.isEmpty {
+        try flushCurrentOp()
+    }
+
+    let solution = results.reduce(0, +)
     return "Solution: \(solution)"
 }

@@ -20,7 +20,12 @@ func readInput(at path: String) -> String {
 struct _6 {
     static func main() {
         let input = readInput(at: inputPath)
-        let answer = solve(input: input)
-        print(answer)
+        do {
+            let answer = try solve(input: input)
+            print(answer)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
     }
 }
