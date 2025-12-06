@@ -36,23 +36,51 @@ public func solve(input: String) -> String {
             return 1
         }
     }
-    for line in lines.dropLast() {
-        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-        let numbers =
-            trimmedLine
-            .split(whereSeparator: \.isWhitespace)
-            .compactMap { Int($0) }
 
-        for (index, op) in operations.enumerated() {
-            guard index < numbers.count else { continue }
-            let number = numbers[index]
-            switch op {
-            case .add:
-                sums[index] += number
-            case .multiply:
-                sums[index] *= number
+    var currentOpIndex = 0
+    var numsForCurrentOp: [Int] = []
+    let colCount = opLine.count
+    for col in 0..<colCount {
+        var numForCol = 0
+        for line in lines.dropLast() {
+            let index = line.index(line.startIndex, offsetBy: col)
+            let char = line[index]
+            if let digit = char.wholeNumberValue {
+                numForCol *= 10
+                numForCol += digit
+            } else if char == " " {
+                continue
+            } else {
+                fputs("Error: Unexpected character '\(char)' in input\n", stderr)
+                exit(1)
             }
         }
+        if numForCol > 0 {
+            numsForCurrentOp.append(numForCol)
+        } else {
+            let currentOp = operations[currentOpIndex]
+            let result: Int
+            switch currentOp {
+            case .add:
+                result = numsForCurrentOp.reduce(0, +)
+            case .multiply:
+                result = numsForCurrentOp.reduce(1, *)
+            }
+            sums[currentOpIndex] = result
+            numsForCurrentOp.removeAll()
+            currentOpIndex += 1
+        }
+    }
+    if !numsForCurrentOp.isEmpty {
+        let currentOp = operations[currentOpIndex]
+        let result: Int
+        switch currentOp {
+        case .add:
+            result = numsForCurrentOp.reduce(0, +)
+        case .multiply:
+            result = numsForCurrentOp.reduce(1, *)
+        }
+        sums[currentOpIndex] = result
     }
 
     let solution = sums.reduce(0, +)
