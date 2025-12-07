@@ -30,15 +30,15 @@ enum ParseError: Error, CustomStringConvertible {
 
 public func solve(input: String) throws -> String {
     let lines = input.split(whereSeparator: \.isNewline).map(String.init)
-    let rows = lines.map({ Array($0) })
+    let rows = lines.map(Array.init)
 
     var previousRow = Array(repeating: 1, count: rows[0].count)
 
     var solution = 0
 
-    for rowIndex in 0..<rows.count {
-        let row = rows[rows[0].count - rowIndex]
-        var rowCounts = previousRow.map { $0 }
+    rowLoop: for (revRowIndex, row) in rows.reversed().enumerated() {
+        let rowIndex = rows.count - 1 - revRowIndex
+        var rowCounts = previousRow
 
         for colIndex in 0..<row.count {
             let ch = row[colIndex]
@@ -49,13 +49,13 @@ public func solve(input: String) throws -> String {
             switch currCellType {
             case .start:
                 solution = rowCounts[colIndex]
-                break
+                break rowLoop
             case .splitter:
                 let leftCount = colIndex > 0 ? rowCounts[colIndex - 1] : 0
                 let rightCount = colIndex + 1 < row.count ? rowCounts[colIndex + 1] : 0
                 rowCounts[colIndex] = leftCount + rightCount
-            default:
-                continue
+            case .beam, .empty:
+                break
             }
         }
 
