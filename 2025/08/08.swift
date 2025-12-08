@@ -65,10 +65,9 @@ func solve() -> String {
     }
     distancesBetweenCoords.sort(by: { $0.distance < $1.distance })
 
-    let junctionsToConnect = inputPath.contains(".example.") ? 10 : 1000
-
+    var solution: Int? = nil
     var circuits: [Set<Coordinate>] = []
-    for item in distancesBetweenCoords.prefix(junctionsToConnect) {
+    for item in distancesBetweenCoords {
         var foundCircuits: [Set<Coordinate>] = []
         var unconnectedCircuits: [Set<Coordinate>] = []
         var alreadyConnected = false
@@ -98,11 +97,16 @@ func solve() -> String {
             }
         }
         circuits.append(newCircuit)
+
+        if circuits.first?.count == coords.count {
+            solution = item.coordA.x * item.coordB.x
+            break
+        }
     }
 
-    // multiply the sizes of the three largest circuits
-    circuits.sort(by: { $0.count > $1.count })
-    let solution = circuits.prefix(3).reduce(1) { $0 * $1.count }
+    guard let solution else {
+        return "No solution found"
+    }
 
     return "Solution: \(solution)"
 }
