@@ -1,7 +1,7 @@
 import Foundation
 
-// let inputPath = "input.example.txt"
-let inputPath = "input.txt"
+let isExample = CommandLine.arguments.contains("--example")
+let inputPath = "input\(isExample ? ".example" : "").txt"
 
 func readInput(at path: String) -> String {
     do {
@@ -13,55 +13,57 @@ func readInput(at path: String) -> String {
     }
 }
 
-struct Coordinate: Hashable {
+struct Point {
     let x: Int
     let y: Int
 
-    var description: String {
-        "(\(x), \(y))"
+    func areaWith(_ other: Point) -> Int {
+        (abs(x - other.x) + 1) * (abs(y - other.y) + 1)
     }
 }
 
-struct Rectangle {
-    let corner1: Coordinate
-    let corner2: Coordinate
+struct Edge {
+    let a: Point
+    let b: Point
 
-    var area: Int {
-        let dx = corner1.x - corner2.x + 1
-        let dy = corner1.y - corner2.y + 1
-        return abs(dx * dy)
+    func intersectsRect(_ rectA: Point, _ rectB: Point) -> Bool {
+        let rectMinX = min(rectA.x, rectB.x) + 1
+        let rectMaxX = max(rectA.x, rectB.x) - 1
+        let rectMinY = min(rectA.y, rectB.y) + 1
+        let rectMaxY = max(rectA.y, rectB.y) - 1
+
+        let edgeMinX = min(a.x, b.x)
+        let edgeMaxX = max(a.x, b.x)
+        let edgeMinY = min(a.y, b.y)
+        let edgeMaxY = max(a.y, b.y)
+
+        return !(edgeMaxX < rectMinX || edgeMinX > rectMaxX || edgeMaxY < rectMinY || edgeMinY > rectMaxY)
     }
 }
 
 func solve() -> String {
     let input = readInput(at: inputPath)
-    let lines = input.split(whereSeparator: \.isNewline).map(String.init)
-    let coords = lines.compactMap { line -> Coordinate? in
-        let parts = line.split(separator: ",").compactMap { Int($0) }
-        guard parts.count == 2 else { return nil }
-        return Coordinate(x: parts[0], y: parts[1])
-    }
-
-    var currentLargest: Rectangle? = nil
-    for i in 0..<coords.count {
-        for j in (i + 1)..<coords.count {
-            let rect = Rectangle(corner1: coords[i], corner2: coords[j])
-
-            if let largest = currentLargest {
-                if rect.area > largest.area {
-                    currentLargest = rect
-                }
-            } else {
-                currentLargest = rect
-            }
+    let corners = input
+        .split(whereSeparator: \.isNewline)
+        .compactMap { line -> Point? in
+            let parts = line.split(separator: ",").compactMap { Int(String($0)) }
+            guard parts.count == 2 else { return nil }
+            return Point(x: parts[0], y: parts[1])
         }
-    }
 
-    guard let solution = currentLargest?.area else {
-        return "No rectangles found"
-    }
+    let edges = (0..<corners.count - 1).map { Edge(a: corners[$0], b: corners[$0 + 1]) }
+        + [Edge(a: corners.last!, b: corners[0])]
 
-    return "Solution: \(solution)"
+    let pairs = (0..<corners.count - 1)
+        .flatMap { i in (i + 1..<corners.count).map { j in (i, j) } }
+
+    let validPairs = pairs.filter { i, j in !edges.contains { $0.intersectsRect(corners[i], corners[j]) } }
+
+    let maxArea = validPairs
+        .map { corners[$0].areaWith(corners[$1]) }
+        .max() ?? 0
+
+    return "Solution: \(maxArea)"
 }
 
 print(solve())
