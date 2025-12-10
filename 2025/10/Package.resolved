@@ -1,0 +1,15 @@
+{
+  "originHash" : "e2f9433ccb5f3805d187a17be1c17eefcb12e6b3c9597789cab8ff81e28ac8fe",
+  "pins" : [
+    {
+      "identity" : "swift-z3",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/LuizZak/swift-z3.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "872e516feb689f17a2fcd5fe32b344dabdb9074b"
+      }
+    }
+  ],
+  "version" : 3
+}
