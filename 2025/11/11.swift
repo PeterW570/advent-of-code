@@ -18,9 +18,10 @@ struct Server {
     let connections: [String]
 }
 
-struct Path {
-    let visited: Set<String>
-    let current: Server
+struct State: Hashable {
+    let serverId: String
+    let hasDac: Bool
+    let hasFft: Bool
 }
 
 func solve() -> String {
@@ -40,30 +41,35 @@ func solve() -> String {
 
     let serversByID = Dictionary(uniqueKeysWithValues: servers.map { ($0.id, $0) })
 
-    // start at "you"
-    guard let startServer = serversByID["you"] else {
-        fputs("Error: No server with ID 'you' found\n", stderr)
-        exit(1)
+    var memo: [State: Int] = [:]
+
+    func countPaths(from serverId: String, hasDac: Bool, hasFft: Bool) -> Int {
+        if serverId == "out" {
+            return (hasDac && hasFft) ? 1 : 0
+        }
+
+        let state = State(serverId: serverId, hasDac: hasDac, hasFft: hasFft)
+        if let cached = memo[state] {
+            return cached
+        }
+
+        guard let server = serversByID[serverId] else {
+            memo[state] = 0
+            return 0
+        }
+
+        var count = 0
+        for connId in server.connections {
+            let newHasDac = hasDac || (connId == "dac")
+            let newHasFft = hasFft || (connId == "fft")
+            count += countPaths(from: connId, hasDac: newHasDac, hasFft: newHasFft)
+        }
+
+        memo[state] = count
+        return count
     }
 
-    var solution = 0
-    var paths = [Path(visited: ["you"], current: startServer)]
-    while !paths.isEmpty {
-        var newPaths: [Path] = []
-        for path in paths {
-            for connID in path.current.connections {
-                if connID == "out" {
-                    solution += 1
-                    continue
-                }
-                guard let nextServer = serversByID[connID] else { continue }
-                var newVisited = path.visited
-                newVisited.insert(nextServer.id)
-                newPaths.append(Path(visited: newVisited, current: nextServer))
-            }
-        }
-        paths = newPaths
-    }
+    let solution = countPaths(from: "svr", hasDac: false, hasFft: false)
 
     return "Solution: \(solution)"
 }
