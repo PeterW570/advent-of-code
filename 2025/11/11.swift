@@ -4,13 +4,11 @@ let isExample = CommandLine.arguments.contains("--example")
 let inputPath = "input\(isExample ? ".example" : "").txt"
 
 func readInput(at path: String) -> String {
-    do {
-        let url = URL(fileURLWithPath: path)
-        return try String(contentsOf: url, encoding: .utf8)
-    } catch {
-        fputs("Error: Failed to read \(path): \(error)\n", stderr)
-        exit(1)
+    let url = URL(fileURLWithPath: path)
+    guard let contents = try? String(contentsOf: url, encoding: .utf8) else {
+        fatalError("Failed to read \(path)")
     }
+    return contents
 }
 
 struct Server {
@@ -24,26 +22,17 @@ struct State: Hashable {
     let hasFft: Bool
 }
 
-func solve() -> String {
-    let input = readInput(at: inputPath)
-    let servers =
-        input
-        .split(whereSeparator: \.isNewline)
-        .compactMap { line -> Server? in
-            let parts = line.split(separator: ": ")
-            guard parts.count == 2 else { return nil }
-            let id = String(parts[0])
-            let connections = parts[1].trimmingCharacters(in: .whitespaces).split(
-                whereSeparator: \.isWhitespace
-            ).map { String($0) }
-            return Server(id: id, connections: connections)
-        }
+struct PathFinder {
+    let serversByID: [String: Server]
+    private var memo: [State: Int] = [:]
 
-    let serversByID = Dictionary(uniqueKeysWithValues: servers.map { ($0.id, $0) })
+    init(servers: [Server]) {
+        self.serversByID = Dictionary(uniqueKeysWithValues: servers.map { ($0.id, $0) })
+    }
 
-    var memo: [State: Int] = [:]
-
-    func countPaths(from serverId: String, hasDac: Bool, hasFft: Bool) -> Int {
+    mutating func countPaths(from serverId: String, hasDac: Bool = false, hasFft: Bool = false)
+        -> Int
+    {
         if serverId == "out" {
             return (hasDac && hasFft) ? 1 : 0
         }
@@ -54,24 +43,43 @@ func solve() -> String {
         }
 
         guard let server = serversByID[serverId] else {
-            memo[state] = 0
             return 0
         }
 
-        var count = 0
-        for connId in server.connections {
-            let newHasDac = hasDac || (connId == "dac")
-            let newHasFft = hasFft || (connId == "fft")
-            count += countPaths(from: connId, hasDac: newHasDac, hasFft: newHasFft)
+        let count = server.connections.reduce(0) { total, connId in
+            total
+                + countPaths(
+                    from: connId,
+                    hasDac: hasDac || connId == "dac",
+                    hasFft: hasFft || connId == "fft"
+                )
         }
 
         memo[state] = count
         return count
     }
-
-    let solution = countPaths(from: "svr", hasDac: false, hasFft: false)
-
-    return "Solution: \(solution)"
 }
 
-print(solve())
+func parseServers(from input: String) -> [Server] {
+    input.split(separator: "\n").compactMap { line in
+        let parts = line.split(separator: ":", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+
+        let id = parts[0].trimmingCharacters(in: .whitespaces)
+        let connections = parts[1]
+            .split(separator: " ")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        return Server(id: id, connections: connections)
+    }
+}
+
+func solve() -> Int {
+    let input = readInput(at: inputPath)
+    let servers = parseServers(from: input)
+
+    var finder = PathFinder(servers: servers)
+    return finder.countPaths(from: "svr")
+}
+
+print("Solution: \(solve())")
